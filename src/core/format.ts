@@ -1,0 +1,1 @@
+export const formatDuration=(seconds:number):string=>{const safe=Math.max(0,Math.ceil(seconds));const hours=Math.floor(safe/3600);const minutes=Math.floor((safe%3600)/60);const secs=safe%60;return hours>0?`${hours}g ${minutes}p`:minutes>0?`${minutes}p ${secs}g`:`${secs}g`;};

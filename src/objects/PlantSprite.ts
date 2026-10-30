@@ -1,0 +1,2 @@
+import{Container,Sprite}from'pixi.js';import type{TextureProvider}from'../render/TextureProvider';
+export class PlantSprite extends Container{private sprite=new Sprite();constructor(private textures:TextureProvider){super();this.sprite.anchor.set(.5,1);this.addChild(this.sprite);}update(variantId:string,stage:number):void{this.sprite.texture=this.textures.getPlantTexture(variantId,stage);this.sprite.width=92;this.sprite.height=92;}}

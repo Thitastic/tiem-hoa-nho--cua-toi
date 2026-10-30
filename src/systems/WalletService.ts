@@ -1,0 +1,2 @@
+import type{WalletData}from'../core/types';
+export class WalletService{constructor(private wallet:WalletData){}balance(id:string):number{return this.wallet[id]??0;}canSpend(id:string,amount:number):boolean{return this.balance(id)>=amount;}add(id:string,amount:number):void{this.wallet[id]=(this.wallet[id]??0)+amount;}spend(id:string,amount:number):boolean{if(!this.canSpend(id,amount))return false;this.wallet[id]-=amount;return true;}}

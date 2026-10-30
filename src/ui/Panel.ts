@@ -1,0 +1,2 @@
+import{Container,Graphics}from'pixi.js';import{UI_CONFIG}from'../data/uiConfig';
+export class Panel extends Container{constructor(width:number,height:number,color=UI_CONFIG.colors.paper,alpha=.96){super();const shadow=new Graphics().roundRect(7,8,width,height,UI_CONFIG.radius).fill({color:UI_CONFIG.colors.shadow,alpha:.22});const bg=new Graphics().roundRect(0,0,width,height,UI_CONFIG.radius).fill({color,alpha}).stroke({color:UI_CONFIG.colors.cream,width:3,alpha:.8});this.addChild(shadow,bg);}}

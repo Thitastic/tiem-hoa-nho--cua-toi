@@ -1,0 +1,1 @@
+import type{Match,OrderStatus}from'../core/types';export interface OrderInstance{uid:string;customerId:string;templateId:string;lines:{match:Match;count:number}[];createdAt:number;expiresAt:number;reward:number;status:OrderStatus}
