@@ -1,2 +1,53 @@
-import{Container,Graphics,Text}from'pixi.js';import type{Game}from'../Game';import type{Toast}from'../ui/Toast';import{GAME_CONFIG,STAT_LIMITS}from'../data/config';import{STRINGS}from'../data/strings';import{UI_CONFIG}from'../data/uiConfig';import{Button}from'../ui/Button';import{SEEDS}from'../data/seeds';import{POTS}from'../data/pots';import{PLANT_VARIANTS}from'../data/plants/rose';import{StatResolver}from'../core/Modifier';
-export class DebugPanel extends Container{private details=new Text({style:{fontFamily:UI_CONFIG.font,fontSize:12,fill:UI_CONFIG.colors.cream,wordWrap:true,wordWrapWidth:360,lineHeight:16}});private speedIndex=0;constructor(private game:Game,private toast:Toast){super();this.visible=false;this.position.set(10,90);this.addChild(new Graphics().roundRect(0,0,400,535,16).fill({color:UI_CONFIG.colors.ink,alpha:.97}).stroke({color:UI_CONFIG.colors.gold,width:2}));const title=new Text({text:STRINGS.debug,style:{fontFamily:UI_CONFIG.font,fontSize:18,fontWeight:'700',fill:UI_CONFIG.colors.gold}});title.position.set(16,14);this.addChild(title);let y=48;const add=(label:string,action:()=>void,x=16,w=176)=>{const button=new Button(label,w,action,34);button.position.set(x,y);this.addChild(button);return button;};add(`${STRINGS.debugSpeed}: x1`,()=>{this.speedIndex=(this.speedIndex+1)%GAME_CONFIG.timeSpeeds.length;const speed=GAME_CONFIG.timeSpeeds[this.speedIndex];this.game.clock.setSpeed(speed);this.toast.show(`x${speed}`);});add(STRINGS.advanceHour,()=>this.game.clock.advance(GAME_CONFIG.advanceHourMs),208);y+=42;add(STRINGS.advanceDay,()=>this.game.clock.advance(GAME_CONFIG.advanceDayMs));add(STRINGS.addCoins,()=>this.game.wallet.add('coin',GAME_CONFIG.debugAddCoins),208);y+=42;add(STRINGS.addPoints,()=>this.game.progress.addPoints(GAME_CONFIG.debugAddPoints));add(STRINGS.generateOrder,()=>this.game.orders.generate(),208);y+=42;for(const seed of SEEDS){add(`${STRINGS.addSeed} ${seed.starLevel}★`,()=>this.game.inventory.add('seeds',seed.id,1),16+(seed.starLevel-1)*122,112);}y+=42;let column=0;for(const pot of POTS){add(pot.name.replace('Chậu ',''),()=>this.game.inventory.add('pots',pot.id,1),16+(column%3)*122,112);column++;if(column%3===0)y+=40;}if(column%3)y+=40;add(STRINGS.forceVariant,()=>{const current=this.game.plants.forcedVariantId;const index=PLANT_VARIANTS.findIndex((variant)=>variant.id===current);this.game.plants.forcedVariantId=PLANT_VARIANTS[(index+1)%PLANT_VARIANTS.length]?.id??null;this.toast.show(this.game.plants.forcedVariantId??STRINGS.automatic);},16,368);y+=44;this.details.position.set(16,y);this.addChild(this.details);this.eventMode='static';window.addEventListener('keydown',(event)=>{if(event.key==='`')this.visible=!this.visible;});}update():void{if(!this.visible)return;const resolver=new StatResolver(()=>this.game.globalModifiers(),STAT_LIMITS);const lines=['mutationChance','growTime','sellPrice','bouquetPrice','waterReduction'].map((stat)=>{const result=resolver.explain(stat,{base:stat==='growTime'?3600:stat.includes('Price')?100:0,family:'rose',tag:'rose',tags:['rose']});return`${stat}: ${result.result.toFixed(2)}\n  ${result.active.map((modifier)=>modifier.source).join(', ')||'—'}`;});this.details.text=lines.join('\n');}}
+import { Container, Text } from 'pixi.js';
+import type { Game } from '../Game';
+import type { Toast } from '../ui/Toast';
+import type { BottomSheet } from '../ui/BottomSheet';
+import { GAME_CONFIG, STAT_LIMITS } from '../data/config';
+import { STRINGS } from '../data/strings';
+import { LAYOUT } from '../data/layout';
+import { THEME } from '../data/theme';
+import { Button } from '../ui/Button';
+import { ScrollList } from '../ui/ScrollList';
+import { SEEDS } from '../data/seeds';
+import { POTS } from '../data/pots';
+import { PLANT_VARIANTS } from '../data/plants/rose';
+import { StatResolver } from '../core/Modifier';
+
+export class DebugPanel {
+  private details?: Text;
+  private speedIndex = 0;
+  private opened = false;
+  private lastSecond = -1;
+  private keyDown = (event: KeyboardEvent) => { if (event.key === '`') this.toggle(); };
+
+  constructor(private game: Game, private toast: Toast, private sheet: BottomSheet, private toggleOverlay: () => boolean) { window.addEventListener('keydown', this.keyDown); }
+
+  toggle(): void { if (this.opened) { this.opened = false; this.sheet.close(); } else this.open(); }
+  destroy(): void { window.removeEventListener('keydown', this.keyDown); }
+
+  update(): void {
+    if (!this.opened || !this.details) return; const second = Math.floor(this.game.clock.now() / 1000); if (second === this.lastSecond) return; this.lastSecond = second;
+    const resolver = new StatResolver(() => this.game.globalModifiers(), STAT_LIMITS);
+    this.details.text = ['mutationChance', 'growTime', 'sellPrice', 'bouquetPrice', 'waterReduction'].map((stat) => {
+      const result = resolver.explain(stat, { base: stat === 'growTime' ? 3600 : stat.includes('Price') ? 100 : 0, family: 'rose', tag: 'rose', tags: ['rose'] });
+      return `${stat}: ${result.result.toFixed(2)} · ${result.active.map((modifier) => modifier.source).join(', ') || '—'}`;
+    }).join('\n');
+  }
+
+  private open(): void {
+    this.opened = true; const root = new Container(); const width = LAYOUT.designWidth - LAYOUT.sheet.sidePadding * 2; const list = new ScrollList(width, LAYOUT.sheet.maxHeight); root.addChild(list);
+    const rows: Container[] = []; const actions: { label: string; action: () => void }[] = [
+      { label: `${STRINGS.debugSpeed}: x${GAME_CONFIG.timeSpeeds[this.speedIndex]}`, action: () => { this.speedIndex = (this.speedIndex + 1) % GAME_CONFIG.timeSpeeds.length; const speed = GAME_CONFIG.timeSpeeds[this.speedIndex]; this.game.clock.setSpeed(speed); this.toast.show(`x${speed}`); this.opened = false; this.open(); } },
+      { label: STRINGS.advanceHour, action: () => this.game.clock.advance(GAME_CONFIG.advanceHourMs) }, { label: STRINGS.advanceDay, action: () => this.game.clock.advance(GAME_CONFIG.advanceDayMs) },
+      { label: STRINGS.addCoins, action: () => this.game.wallet.add('coin', GAME_CONFIG.debugAddCoins) }, { label: STRINGS.addPoints, action: () => this.game.progress.addPoints(GAME_CONFIG.debugAddPoints) },
+      { label: STRINGS.generateOrder, action: () => this.game.orders.generate() }, { label: STRINGS.debugOverlay, action: () => this.toggleOverlay() },
+      ...SEEDS.map((seed) => ({ label: `${STRINGS.addSeed} ${seed.starLevel}★`, action: () => this.game.inventory.add('seeds', seed.id, 1) })),
+      ...POTS.map((pot) => ({ label: pot.name, action: () => this.game.inventory.add('pots', pot.id, 1) })),
+      { label: STRINGS.forceVariant, action: () => { const current = this.game.plants.forcedVariantId; const index = PLANT_VARIANTS.findIndex((variant) => variant.id === current); this.game.plants.forcedVariantId = PLANT_VARIANTS[(index + 1) % PLANT_VARIANTS.length]?.id ?? null; this.toast.show(this.game.plants.forcedVariantId ?? STRINGS.automatic); } },
+    ];
+    const gap = THEME.tap.gap; const buttonWidth = (width - gap) / 2;
+    for (let index = 0; index < actions.length; index += 2) { const row = new Container(); actions.slice(index, index + 2).forEach((action, column) => { const button = new Button(action.label, buttonWidth, action.action, THEME.tap.min, THEME.font.caption); button.x = column * (buttonWidth + gap); row.addChild(button); }); rows.push(row); }
+    const details = new Text({ style: { fontFamily: THEME.font.family, fontSize: THEME.font.caption, fill: THEME.colors.text, wordWrap: true, wordWrapWidth: width, lineHeight: THEME.font.body } }); this.details = details; rows.push(new Container()); rows.at(-1)!.addChild(details);
+    list.setItems(rows, gap); this.sheet.show(STRINGS.debug, root, LAYOUT.sheet.maxHeight, (innerWidth, innerHeight) => list.resize(innerWidth, innerHeight)); this.update();
+  }
+}

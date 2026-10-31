@@ -1,3 +1,93 @@
-import{Container,Graphics,Sprite,Text}from'pixi.js';import type{Game}from'../Game';import type{TextureProvider}from'../render/TextureProvider';import type{Toast}from'../ui/Toast';import{BOUQUETS}from'../data/bouquets';import{variantById}from'../data/plants/rose';import{STRINGS}from'../data/strings';import{UI_CONFIG}from'../data/uiConfig';import{ScrollList}from'../ui/ScrollList';import{Button}from'../ui/Button';import{Label}from'../ui/Label';
-export class PackingScene{readonly view=new Container();private list=new ScrollList(790,430);private inventory=new Container();constructor(private game:Game,private textures:TextureProvider,private toast:Toast){const bg=new Sprite(textures.getBackground('packing_table'));bg.width=1280;bg.height=720;this.view.addChild(bg,new Graphics().rect(0,78,1280,556).fill({color:0x372619,alpha:.28}));const title=new Label(STRINGS.allRecipes,{fontSize:28,fontWeight:'700',fill:UI_CONFIG.colors.cream,stroke:{color:UI_CONFIG.colors.ink,width:4}});title.position.set(35,98);this.list.position.set(35,150);this.inventory.position.set(855,150);this.view.addChild(title,this.list,this.inventory);this.refresh();}update():void{}destroy():void{this.view.destroy({children:true});}
-private refresh():void{const cards=BOUQUETS.map((def)=>{const card=new Container();card.addChild(new Graphics().roundRect(0,0,790,118,16).fill({color:UI_CONFIG.colors.paper,alpha:.96}));const icon=new Sprite(this.textures.getItemTexture(def.id));icon.anchor.set(.5);icon.position.set(61,59);icon.width=86;icon.height=86;const name=new Text({text:def.name,style:{fontFamily:UI_CONFIG.font,fontSize:21,fontWeight:'700',fill:UI_CONFIG.colors.ink}});name.position.set(118,13);const ingredientText=def.ingredients.map((ingredient)=>{const id=ingredient.match.variantId!;const have=this.game.inventory.count('flowers',id);return`${have>=ingredient.count?'✓':'✕'} ${variantById(id).name} ${have}/${ingredient.count}`;}).join('   ');const ingredients=new Text({text:ingredientText,style:{fontFamily:UI_CONFIG.font,fontSize:14,fill:this.game.bouquets.canCraft(def)?UI_CONFIG.colors.green:UI_CONFIG.colors.red,wordWrap:true,wordWrapWidth:530}});ingredients.position.set(118,49);const price=new Text({text:`◆ ${this.game.bouquets.price(def)} ${STRINGS.coins}  ·  ${def.points} ${STRINGS.points}`,style:{fontFamily:UI_CONFIG.font,fontSize:15,fill:UI_CONFIG.colors.muted}});price.position.set(118,83);const wrap=new Button(STRINGS.wrap,96,()=>{if(this.game.bouquets.craft(def)){this.toast.show(`${STRINGS.wrapped} ${def.name}`);this.refresh();}},38);wrap.position.set(672,17);wrap.setEnabled(this.game.bouquets.canCraft(def));const sell=new Button(STRINGS.sell,96,()=>{const coins=this.game.sell.sellBouquet(def);if(coins){this.toast.show(`${STRINGS.sold}: ${coins} ${STRINGS.coins}`);this.refresh();}},38);sell.position.set(672,65);sell.setEnabled(this.game.inventory.count('bouquets',def.id)>0);card.addChild(icon,name,ingredients,price,wrap,sell);return card;});this.list.setItems(cards,10);this.inventory.removeChildren().forEach((child)=>child.destroy({children:true}));this.inventory.addChild(new Graphics().roundRect(0,0,390,430,18).fill({color:UI_CONFIG.colors.paper,alpha:.96}));const title=new Label(STRINGS.flowerInventory,{fontSize:21,fontWeight:'700'});title.position.set(20,18);this.inventory.addChild(title);let y=62;for(const[id,count]of this.game.inventory.entries('flowers')){const icon=new Sprite(this.textures.getItemTexture(id));icon.position.set(18,y);icon.width=24;icon.height=24;const line=new Text({text:`${variantById(id).name}  ×${count}`,style:{fontFamily:UI_CONFIG.font,fontSize:16,fill:UI_CONFIG.colors.ink}});line.position.set(52,y+2);this.inventory.addChild(icon,line);y+=34;}if(y===62){const empty=new Label(STRINGS.emptyInventory,{fontSize:16,fill:UI_CONFIG.colors.muted});empty.position.set(20,y);this.inventory.addChild(empty);}}}
+import { Container, Graphics, Sprite, Text } from 'pixi.js';
+import type { Game } from '../Game';
+import type { TextureProvider } from '../render/TextureProvider';
+import type { Toast } from '../ui/Toast';
+import type { ViewportInfo } from '../layout/LayoutManager';
+import type { BouquetDef } from '../core/types';
+import { computeRegions } from '../layout/LayoutManager';
+import { BOUQUETS } from '../data/bouquets';
+import { variantById } from '../data/plants/rose';
+import { STRINGS } from '../data/strings';
+import { LAYOUT } from '../data/layout';
+import { THEME } from '../data/theme';
+import { ScrollList } from '../ui/ScrollList';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Chip } from '../ui/Chip';
+
+export class PackingScene {
+  readonly view = new Container();
+  private background: Sprite;
+  private shade = new Graphics();
+  private title = new Text({ text: STRINGS.allRecipes, style: this.textStyle(THEME.font.heading, THEME.colors.textOnDark, true) });
+  private list = new ScrollList(LAYOUT.designWidth - LAYOUT.sidePadding * 2, LAYOUT.minHeight);
+  private sticky = new Card(LAYOUT.designWidth - LAYOUT.sidePadding * 2, LAYOUT.packing.stickyHeight);
+  private selectedName = new Text({ style: this.textStyle(THEME.font.heading, THEME.colors.text, true) });
+  private selectedInfo = new Text({ style: { ...this.textStyle(THEME.font.caption, THEME.colors.muted), wordWrap: true } });
+  private wrapButton = new Button(STRINGS.wrap, LAYOUT.packing.actionWidth, () => this.wrap());
+  private selected = BOUQUETS[0];
+
+  constructor(private game: Game, private textures: TextureProvider, private toast: Toast) {
+    this.background = new Sprite(textures.getBackground('packing_table'));
+    this.sticky.addChild(this.selectedName, this.selectedInfo, this.wrapButton);
+    this.view.addChild(this.background, this.shade, this.title, this.list, this.sticky);
+    this.refresh();
+  }
+
+  layout(vp: ViewportInfo): void {
+    const content = computeRegions(vp).content;
+    this.background.width = vp.width;
+    this.background.height = vp.height;
+    this.shade.clear().rect(0, 0, vp.width, vp.height).fill({ color: THEME.colors.shadow, alpha: LAYOUT.scene.backgroundShadeAlpha });
+    this.title.position.set(LAYOUT.sidePadding, content.y + THEME.spacing.sm);
+    const stickyY = content.y + content.height - LAYOUT.packing.stickyHeight - THEME.spacing.sm;
+    this.list.position.set(LAYOUT.sidePadding, this.title.y + LAYOUT.scene.titleHeight);
+    this.list.resize(content.width - LAYOUT.sidePadding * 2, stickyY - THEME.spacing.sm - this.list.y);
+    this.sticky.position.set(LAYOUT.sidePadding, stickyY);
+    this.sticky.resize(content.width - LAYOUT.sidePadding * 2, LAYOUT.packing.stickyHeight);
+    this.selectedName.position.set(THEME.spacing.md, THEME.spacing.md);
+    this.selectedInfo.position.set(THEME.spacing.md, THEME.spacing.xl + THEME.spacing.md);
+    this.selectedInfo.style.wordWrapWidth = content.width - LAYOUT.sidePadding * 2 - LAYOUT.packing.actionWidth - THEME.spacing.xxl;
+    this.wrapButton.position.set(content.width - LAYOUT.sidePadding * 2 - LAYOUT.packing.actionWidth - THEME.spacing.md, LAYOUT.packing.stickyHeight - THEME.spacing.md - THEME.tap.min);
+  }
+
+  update(): void {}
+  destroy(): void { this.view.destroy({ children: true }); }
+
+  private refresh(): void {
+    const width = LAYOUT.designWidth - LAYOUT.sidePadding * 2;
+    this.list.setItems(BOUQUETS.map((def) => this.recipeCard(def, width)), LAYOUT.scene.listGap);
+    const ingredients = this.selected.ingredients.map((ingredient) => {
+      const id = ingredient.match.variantId!;
+      return `${variantById(id).name} ${this.game.inventory.count('flowers', id)}/${ingredient.count}`;
+    }).join('  •  ');
+    this.selectedName.text = this.selected.name;
+    this.selectedInfo.text = `${ingredients}\n${this.game.bouquets.canCraft(this.selected) ? STRINGS.recipeReady : STRINGS.recipeMissing}`;
+    this.wrapButton.setEnabled(this.game.bouquets.canCraft(this.selected));
+  }
+
+  private recipeCard(def: BouquetDef, width: number): Container {
+    const card = new Card(width, LAYOUT.packing.cardHeight);
+    const icon = new Sprite(this.textures.getItemTexture(def.id));
+    icon.position.set(THEME.spacing.md, THEME.spacing.md); icon.width = icon.height = LAYOUT.packing.iconSize;
+    const name = new Text({ text: def.name, style: this.textStyle(THEME.font.heading, THEME.colors.text, true) });
+    name.position.set(THEME.spacing.xxl + LAYOUT.packing.iconSize, THEME.spacing.md);
+    const chips = new Container(); const chipAreaWidth=width-name.x-THEME.spacing.md;const chipGap=THEME.spacing.sm;const chipWidth=(chipAreaWidth-chipGap)/2;
+    def.ingredients.forEach((ingredient,index)=>{const id=ingredient.match.variantId!;const have=this.game.inventory.count('flowers',id);const chip=new Chip(`${variantById(id).name} ${have}/${ingredient.count}`,have>=ingredient.count,chipWidth);chip.position.set((index%2)*(chipWidth+chipGap),Math.floor(index/2)*(THEME.spacing.xl+chipGap));chips.addChild(chip);});
+    chips.position.set(name.x,THEME.spacing.xxl+THEME.spacing.sm);
+    const price = new Text({ text: `${this.game.bouquets.price(def)} ${STRINGS.coins}  •  ${def.points} ${STRINGS.points}`, style: this.textStyle(THEME.font.caption, THEME.colors.primaryDark, true) });
+    const actionY=LAYOUT.packing.cardHeight-THEME.tap.min-THEME.spacing.md;price.position.set(THEME.spacing.md,actionY+(THEME.tap.min-THEME.font.caption)/2);
+    const select = new Button(STRINGS.select, LAYOUT.packing.actionWidth, () => { this.selected = def; this.refresh(); }, THEME.tap.min, THEME.font.caption);
+    select.position.set(width - LAYOUT.packing.actionWidth - THEME.spacing.md,actionY);
+    card.addChild(icon, name, chips, price, select);
+    return card;
+  }
+
+  private wrap(): void {
+    if (this.game.bouquets.craft(this.selected)) { this.toast.show(`${STRINGS.wrapped} ${this.selected.name}`); this.refresh(); }
+  }
+
+  private textStyle(fontSize: number, fill: number, bold = false) {
+    return { fontFamily: THEME.font.family, fontSize, fill, fontWeight: bold ? '700' as const : '400' as const };
+  }
+}

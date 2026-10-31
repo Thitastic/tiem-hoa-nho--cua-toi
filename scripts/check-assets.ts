@@ -1,5 +1,6 @@
-import{existsSync}from'node:fs';import{resolve}from'node:path';import{ASSET_MANIFEST}from'../src/data/assetPaths';
+import{existsSync}from'node:fs';import{resolve}from'node:path';import{ASSET_MANIFEST,ASSET_SIZES}from'../src/data/assetPaths';
 const root=resolve(process.cwd(),'public');
+if(ASSET_MANIFEST.some((entry)=>entry.group.startsWith('Phông nền')&&(entry.size.w!==ASSET_SIZES.background.w||entry.size.h!==ASSET_SIZES.background.h)))throw new Error('Kích thước phông nền trong manifest không đồng nhất.');
 const groups=new Map<string,typeof ASSET_MANIFEST>();
 for(const entry of ASSET_MANIFEST){const list=groups.get(entry.group)??[];list.push(entry);groups.set(entry.group,list);}
 let requiredPresent=0,requiredMissing=0,optionalPresent=0,optionalMissing=0;

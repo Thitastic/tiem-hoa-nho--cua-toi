@@ -16,6 +16,10 @@ npm run check-assets
 
 `check-assets` chỉ đọc manifest và filesystem, không tạo tệp. Lệnh trả mã lỗi khi còn ảnh bắt buộc chưa có; đây là hành vi dự kiến trong giai đoạn dùng placeholder. Nhấn phím `` ` `` trong game để mở bảng thử nghiệm.
 
+Để thử trên điện thoại cùng mạng, chạy `npm run dev -- --host`, rồi mở địa chỉ LAN do Vite in ra. Giao diện dùng chiều rộng logic 720, tự tính chiều cao theo tỉ lệ màn hình, đọc safe-area của tai thỏ/home indicator và giữ cột game dọc ở giữa trên desktop hoặc màn hình ngang.
+
+Các số đo giao diện nằm trong `src/data/layout.ts`, màu/chữ nằm trong `src/data/theme.ts`. Muốn căn lưới 5×4 với tranh nền nhà kính, chỉnh `GreenhouseDef.slotLayout` trong `src/data/greenhouses.ts`: `insetX`, `offsetY`, `gapX`, `gapY` và `cellAspect`; không cần sửa scene hoặc logic game.
+
 ## Danh sách ảnh cần làm
 
 Tất cả đường dẫn dưới đây nằm trong `public/assets/`. PNG trong suốt, trừ phông nền. Kích thước là gợi ý và được khai báo trong `src/data/assetPaths.ts`.
@@ -65,7 +69,9 @@ Icon chậu trong kho/cửa hàng dùng lại ảnh trong `pots/`, không cần 
 
 Mỗi archetype có thể thêm hai ảnh tùy chọn `<archetypeKey>_happy.png` và `<archetypeKey>_upset.png` (24 ảnh). Mỗi khách còn có override tùy chọn `customers/portraits/by_id/<customerId>.png` với các ID: `customer.regular`, `customer.husband_gift`, `customer.tea_shop_owner`, `customer.bride_to_be`, `customer.proposer`, `customer.student`, `customer.collector`, `customer.wedding_planner`, `customer.teacher`, `customer.cafe_owner`, `customer.long_distance`, `customer.designer`. Thứ tự tra: `by_id` → mood → ảnh gốc → placeholder.
 
-### Phông nền — 1280×720
+### Phông nền — 720×1600
+
+Giữ mọi chi tiết quan trọng trong vùng an toàn 720×1280 ở giữa (từ y=160 đến y=1440). Dải 160 px phía trên và dưới chỉ nên là phần trang trí có thể kéo dài hoặc bị cắt.
 
 | Tệp | Trạng thái |
 |---|---|
@@ -119,6 +125,6 @@ Tổng theo yêu cầu: 24 cây hoa, 6 chậu, 6 cành hoa, 3 hạt giống, 6 b
 13. Tối đa 4 đơn mở; đơn lẻ khoảng 2 giờ, bó thường 4 giờ, bó hiếm 8–24 giờ.
 14. Save key `flower-game-save`, autosave 10 giây; tiến trình offline dùng timestamp tuyệt đối.
 15. Khởi đầu: 100 xu, 1 nhà kính, 3 chậu thường, 3 hạt hồng 1★ và bình tưới đồng.
-16. Kích thước logic 1280×720; canvas tự co theo chuột/chạm.
+16. Kích thước logic rộng 720, cao linh hoạt 1080–1680; vùng UI thiết yếu 720×1280 được căn giữa. Trên desktop và màn hình ngang, game nằm trong cột dọc tối đa khoảng 480 CSS px.
 
 Các con số trên đều nằm trong `src/data/`, không nằm rải rác trong logic gameplay.

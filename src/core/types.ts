@@ -8,7 +8,7 @@ export interface PlantVariantDef { id:string;familyId:string;variantKey:string;n
 export interface PlantFamilyDef { id:string;name:string;baseVariantId:string;growTimeSec:number;wateringIntervalSec:number[];mutationChance:number;revealVariantFromStage:number;stageThresholds:number[];witherAfterSec:number|null;tempRange:number[];variants:PlantVariantDef[] }
 export interface SeedDef { id:string;familyId:string;name:string;starLevel:number;mutationBonus:number;forceMutation:boolean;minRarity?:string;price:number|null;currencyId:string;shopId:string|null }
 export interface PotDef { id:string;name:string;rarity:string;price:number|null;currencyId:string;plantOffset:{x:number;y:number};modifiers:import('./Modifier').Modifier[];priceFormula:{enabled:boolean;growth:number} }
-export interface GreenhouseDef { id:string;index:number;name:string;slotsGrid:{w:number;h:number};buildCost:number;currencyId:string;environment:{temperature:number|null};slotLayout:{originX:number;originY:number;cellW:number;cellH:number} }
+export interface GreenhouseDef { id:string;index:number;name:string;slotsGrid:{w:number;h:number};buildCost:number;currencyId:string;environment:{temperature:number|null};slotLayout:{insetX:number;offsetY:number;gapX:number;gapY:number;cellAspect:number} }
 export interface BouquetIngredient { match:Match;count:number }
 export interface BouquetDef { id:string;key:string;name:string;ingredients:BouquetIngredient[];price:number;points:number;tags:string[];currencyId:string }
 export interface RewardModifier { type:'modifier';modifier:import('./Modifier').Modifier }
