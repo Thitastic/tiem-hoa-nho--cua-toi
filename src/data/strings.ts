@@ -10,7 +10,7 @@ export const STRINGS={
   quests:'Nhiệm vụ',rank:'Hạng',rankTrack:'Hành trình hạng',completed:'Hoàn thành',claim:'Nhận',questProgress:'Tiến độ nhiệm vụ',points:'điểm',
   debug:'BẢNG THỬ NGHIỆM',debugOverlay:'Hiện vùng bố cục',advanceHour:'+ 1 giờ',advanceDay:'+ 1 ngày',addCoins:'Thêm xu',addPoints:'Thêm điểm',generateOrder:'Tạo đơn ngay',modifiers:'Buff đang hoạt động',debugSpeed:'Tốc độ thời gian',
   rankUp:'Lên hạng',newOrder:'Có khách mới ghé tiệm!',saved:'Đã lưu trò chơi.',potBought:'Đã đặt chậu mới vào nhà kính.',seedBought:'Đã mua hạt giống.',wrapped:'Đã gói một bó hoa.',sold:'Đã bán',orderDone:'Giao đơn thành công!',orderFailed:'Đơn hàng đã thất bại.',greenhouseBuilt:'Đã xây nhà kính mới.',upgradeBought:'Đã mua nâng cấp.',
-  allRecipes:'Công thức',bouquetInventory:'Bó hoa đã gói',flowerInventory:'Cành hoa',stageNames:['Mới trồng','Đang lớn','Nụ hoa','Nở rộ'],moods:{base:'Bình thường',happy:'Vui vẻ',upset:'Buồn'},
-  settingsHint:'Chạm 5 lần vào bộ đếm xu để mở bảng thử nghiệm. Phím ` vẫn dùng được trên máy tính.',forceVariant:'Ép giống khi trồng',automatic:'Tự động',addSeed:'Thêm hạt',addPot:'Thêm chậu',setFavor:'Tăng thiện cảm',
+  allRecipes:'Công thức',bouquetInventory:'Bó hoa đã gói',flowerInventory:'Cành hoa',stageNames:['Mới trồng','Mầm non','Đang lớn','Đang kết nụ','Nở rộ'],moods:{base:'Bình thường',happy:'Vui vẻ',upset:'Buồn'},
+  settingsHint:'Chạm 5 lần vào bộ đếm xu để mở bảng thử nghiệm. Phím ` vẫn dùng được trên máy tính.',forceVariant:'Ép giống khi trồng',forceStage:'Ép giai đoạn',selectPlantForDebug:'Hãy chọn một cây trong nhà kính trước.',automatic:'Tự động',addSeed:'Thêm hạt',addPot:'Thêm chậu',setFavor:'Tăng thiện cảm',
   currentGreenhouse:'Nhà kính hiện tại',previous:'Trước',next:'Sau',reloadAfterDelete:'Dữ liệu đã xóa. Trò chơi sẽ tải lại.',
 }as const;

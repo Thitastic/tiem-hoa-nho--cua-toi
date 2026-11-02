@@ -3,10 +3,10 @@ import{Container,FederatedPointerEvent,Graphics,Sprite,Text}from'pixi.js';import
 type ButtonState='normal'|'pressed'|'disabled';
 export class Button extends Container{
   private static textures?:TextureProvider;static configure(textures:TextureProvider):void{Button.textures=textures;}
-  private visual=new Container();private skin=new Sprite();private bg=new Graphics();private labelText:Text;private enabled=true;
+  private visual=new Container();private skin=new Sprite();private bg=new Graphics();private icon=new Sprite();private labelText:Text;private enabled=true;private iconSize=0;
   private buttonWidth:number=THEME.tap.min;private buttonHeight:number=THEME.tap.min;private gesture=new PointerGesture(THEME.tap.dragCancelCss);
   constructor(text:string,width:number,onClick:()=>void,height:number=THEME.tap.min,fontSize:number=THEME.font.body){
-    super();this.buttonWidth=Math.max(THEME.tap.min,width);this.buttonHeight=Math.max(THEME.tap.min,height);this.visual.addChild(this.skin,this.bg);
+    super();this.buttonWidth=Math.max(THEME.tap.min,width);this.buttonHeight=Math.max(THEME.tap.min,height);this.icon.anchor.set(.5);this.icon.visible=false;this.visual.addChild(this.skin,this.bg,this.icon);
     this.labelText=new Text({text,style:{fontFamily:THEME.font.family,fontSize,fontWeight:'700',fill:THEME.colors.textOnDark,align:'center',lineHeight:fontSize*1.12}});this.labelText.anchor.set(.5);this.visual.addChild(this.labelText);this.addChild(this.visual);
     this.eventMode='static';this.cursor='pointer';this.on('pointerdown',(event)=>{if(!this.enabled)return;const p=this.clientPoint(event);this.gesture.begin(event.pointerId,p.x,p.y);this.draw('pressed');});
     this.on('globalpointermove',(event)=>{const p=this.clientPoint(event);if(this.gesture.move(event.pointerId,p.x,p.y))this.draw('normal');});
@@ -14,8 +14,10 @@ export class Button extends Container{
     this.on('pointerupoutside',(event)=>{this.gesture.cancel(event.pointerId);this.draw(this.enabled?'normal':'disabled');});this.on('pointercancel',(event)=>{this.gesture.cancel(event.pointerId);this.draw(this.enabled?'normal':'disabled');});this.resize(this.buttonWidth,this.buttonHeight);this.draw('normal');
   }
   setText(text:string):void{if(this.labelText.text!==text)this.labelText.text=text;}
+  setIcon(key:string|null,size:number=THEME.spacing.xl):void{this.icon.visible=Boolean(key);this.iconSize=size;if(key&&Button.textures)this.icon.texture=Button.textures.getTexture(key);this.layoutContent();}
   setEnabled(enabled:boolean):void{if(this.enabled===enabled)return;this.enabled=enabled;this.cursor=enabled?'pointer':'default';this.gesture.cancel();this.draw(enabled?'normal':'disabled');}
-  resize(width:number,height:number):void{this.buttonWidth=Math.max(THEME.tap.min,width);this.buttonHeight=Math.max(THEME.tap.min,height);this.hitArea={contains:(x:number,y:number)=>x>=0&&x<=this.buttonWidth&&y>=0&&y<=this.buttonHeight};this.labelText.position.set(this.buttonWidth/2,this.buttonHeight/2);this.draw(this.enabled?'normal':'disabled');}
+  resize(width:number,height:number):void{this.buttonWidth=Math.max(THEME.tap.min,width);this.buttonHeight=Math.max(THEME.tap.min,height);this.hitArea={contains:(x:number,y:number)=>x>=0&&x<=this.buttonWidth&&y>=0&&y<=this.buttonHeight};this.layoutContent();this.draw(this.enabled?'normal':'disabled');}
   private draw(state:ButtonState):void{const key=`ui:button_${state}`;const useSkin=Button.textures?.hasTexture(key)??false;this.skin.visible=useSkin;this.bg.visible=!useSkin;if(useSkin){this.skin.texture=Button.textures!.getTexture(key);this.skin.width=this.buttonWidth;this.skin.height=this.buttonHeight;}const color=state==='disabled'?THEME.colors.disabled:state==='pressed'?THEME.colors.primaryDark:THEME.colors.primary;this.bg.clear().roundRect(0,0,this.buttonWidth,this.buttonHeight,THEME.radius.md).fill({color,alpha:state==='disabled'?THEME.opacity.disabled:1}).stroke({color:THEME.colors.outline,width:THEME.stroke.normal,alpha:THEME.opacity.buttonOutline});const pressed=state==='pressed'?THEME.tap.pressScale:1;this.visual.scale.set(pressed);this.visual.position.set((1-pressed)*this.buttonWidth/2,(1-pressed)*this.buttonHeight/2);}
+  private layoutContent():void{if(!this.icon.visible){this.labelText.position.set(this.buttonWidth/2,this.buttonHeight/2);return;}this.icon.width=this.icon.height=this.iconSize;if(this.buttonWidth<=THEME.tap.min+THEME.tap.gap){this.icon.position.set(this.buttonWidth/2,this.buttonHeight*.34);this.labelText.position.set(this.buttonWidth/2,this.buttonHeight*.76);}else{this.icon.position.set(THEME.spacing.sm+this.iconSize/2,this.buttonHeight/2);this.labelText.position.set((THEME.spacing.sm+this.iconSize+this.buttonWidth)/2,this.buttonHeight/2);}}
   private clientPoint(event:FederatedPointerEvent):{x:number;y:number}{return{x:event.client.x,y:event.client.y};}
 }

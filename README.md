@@ -1,10 +1,8 @@
 # Tiệm Hoa Nhỏ Của Tôi
 
-Game trồng, gói và bán hoa viết bằng PixiJS 8 + TypeScript + Vite. Game chạy được khi chưa có bất kỳ ảnh nào: mọi ảnh thiếu được thay bằng placeholder vẽ bằng `Graphics` + `Text`, và mỗi đường dẫn thiếu chỉ cảnh báo một lần trong console.
+Game trồng, gói và bán hoa viết bằng PixiJS 8 + TypeScript + Vite. Giao diện ưu tiên điện thoại dọc, dùng chiều rộng logic 720 và vẫn chạy bằng placeholder vẽ bằng code khi chưa có tranh.
 
-> Repo này không chứa và không tự tạo, tải hay sinh bất kỳ tệp ảnh nào. Bạn tự thêm ảnh vào `public/assets/` khi sẵn sàng.
-
-## Chạy game và kiểm thử
+## Chạy game
 
 ```bash
 npm install
@@ -14,117 +12,87 @@ npm run build
 npm run check-assets
 ```
 
-`check-assets` chỉ đọc manifest và filesystem, không tạo tệp. Lệnh trả mã lỗi khi còn ảnh bắt buộc chưa có; đây là hành vi dự kiến trong giai đoạn dùng placeholder. Nhấn phím `` ` `` trong game để mở bảng thử nghiệm.
+Mở trên điện thoại cùng mạng bằng `npm run dev -- --host`, sau đó truy cập địa chỉ LAN do Vite in ra. Nhấn phím ``` ``` trên desktop hoặc chạm 5 lần vào bộ đếm xu để mở bảng thử nghiệm.
 
-Để thử trên điện thoại cùng mạng, chạy `npm run dev -- --host`, rồi mở địa chỉ LAN do Vite in ra. Giao diện dùng chiều rộng logic 720, tự tính chiều cao theo tỉ lệ màn hình, đọc safe-area của tai thỏ/home indicator và giữ cột game dọc ở giữa trên desktop hoặc màn hình ngang.
+`npm run check-assets` chỉ đọc manifest và filesystem. Lệnh in ảnh hiện có/đang thiếu theo nhóm, phân biệt bắt buộc/tùy chọn và liệt kê mọi tệp trong `public/assets` chưa được dữ liệu tham chiếu.
 
-Các số đo giao diện nằm trong `src/data/layout.ts`, màu/chữ nằm trong `src/data/theme.ts`. Muốn căn lưới 5×4 với tranh nền nhà kính, chỉnh `GreenhouseDef.slotLayout` trong `src/data/greenhouses.ts`: `insetX`, `offsetY`, `gapX`, `gapY` và `cellAspect`; không cần sửa scene hoặc logic game.
+## Ảnh hiện đã dùng
 
-## Danh sách ảnh cần làm
+Mọi đường dẫn được khai báo trong `src/data/assetPaths.ts` và dữ liệu tương ứng; scene/UI không chứa tên tệp. Texture dùng `linear` scale mode từ `src/data/assetConfig.ts`.
 
-Tất cả đường dẫn dưới đây nằm trong `public/assets/`. PNG trong suốt, trừ phông nền. Kích thước là gợi ý và được khai báo trong `src/data/assetPaths.ts`.
+### Chậu
 
-### Cây hoa — 24 ảnh bắt buộc, 256×256
-
-Mỗi hàng gồm bốn tệp `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png`, neo giữa–dưới `(0.5, 1)`.
-
-| Đường dẫn thư mục | Tệp | Trạng thái |
+| ID | Tệp | Trạng thái |
 |---|---|---|
-| `plants/rose/red_naomi/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Bắt buộc |
-| `plants/rose/black_baccara/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Bắt buộc |
-| `plants/rose/monica/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Bắt buộc |
-| `plants/rose/bajou/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Bắt buộc |
-| `plants/rose/masora/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Bắt buộc |
-| `plants/rose/eckart/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Bắt buộc |
-| `plants/rose/default/` | `stage1.png`, `stage2.png`, `stage3.png`, `stage4.png` | Tùy chọn; dùng khi `revealVariantFromStage > 1` |
+| `pot_common` | `pots/chau-thuong.png` | Có |
+| `pot_terracotta` | `pots/chau-dat-nung.png` | Có |
+| `pot_granite` | `pots/chau-hoa-cuong.png` | Có |
+| `pot_marble` | `pots/chau-cam-thach.png` | Có |
+| `pot_diamond` | `pots/chau-kim-cuong.png` | Có |
+| `pot_gold` | `pots/chau-vang.png` | Thiếu, dùng placeholder |
 
-### Chậu — 6 ảnh bắt buộc, 256×256
+Ảnh chậu được neo giữa–dưới và giữ nguyên tỉ lệ trong nhà kính, kho và cửa hàng. `displayScale` cùng `plantOffset` nằm trong từng `PotDef`.
 
-`pots/pot_common.png`, `pots/pot_terracotta.png`, `pots/pot_granite.png`, `pots/pot_marble.png`, `pots/pot_gold.png`, `pots/pot_diamond.png`.
+Khi thêm chậu vàng, đổi đúng một trường của `pot_gold` trong `src/data/pots.ts`:
 
-### Vật phẩm
+```ts
+image:'pots/chau-vang.png'
+```
 
-| Nhóm / kích thước | Tệp | Trạng thái |
-|---|---|---|
-| Cành hoa 128×128 | `items/flowers/red_naomi.png`, `black_baccara.png`, `monica.png`, `bajou.png`, `masora.png`, `eckart.png` | 6 bắt buộc |
-| Hạt giống 128×128 | `items/seeds/seed_rose_1star.png`, `seed_rose_2star.png`, `seed_rose_3star.png` | 3 bắt buộc |
-| Bó hoa 192×192 | `items/bouquets/burning_love.png`, `eternal_vow.png`, `lavender_dream.png`, `love_symphony.png`, `two_hearts.png`, `morning_glow.png` | 6 bắt buộc |
-| Bình tưới 128×128 | `items/watering_cans/can_copper.png`, `can_silver.png`, `can_gold.png`, `can_diamond.png` | 4 bắt buộc |
-| Rương 128×128 | `items/chests/chest_pot.png` | 1 bắt buộc |
-| Nhà kính 128×128 | `items/greenhouses/greenhouse_2.png`, `greenhouse_3.png`, `greenhouse_4.png` | 3 bắt buộc |
+### Hoa hồng — năm giai đoạn 0–4
 
-Icon chậu trong kho/cửa hàng dùng lại ảnh trong `pots/`, không cần bản riêng.
+Ngưỡng mặc định là `[0, 0.20, 0.45, 0.75, 1.0]`. Giai đoạn 4 chỉ xuất hiện khi cây đã sẵn sàng thu hoạch. Giống được gieo từ đầu nhưng chỉ lộ từ giai đoạn 2.
 
-### Tiền tệ — 64×64
+| Giai đoạn | Ý nghĩa | Ảnh |
+|---:|---|---|
+| 0 | Mới trồng | `rose/step-0.png`, dùng chung |
+| 1 | Mầm non | `rose/step-1.png`, dùng chung |
+| 2 | Đang lớn | Ảnh riêng của giống |
+| 3 | Đang kết nụ | Ảnh riêng của giống |
+| 4 | Nở rộ / sẵn sàng | Ảnh riêng; thiếu thì dùng im lặng ảnh riêng gần nhất thấp hơn |
 
-| Tệp | Trạng thái |
+| Variant | Giai đoạn 2 | Giai đoạn 3 | Giai đoạn 4 |
+|---|---|---|---|
+| `rose.red_naomi` | `rose-common-2.png` | `rose-common-3.png` | `rose-common-4.png` |
+| `rose.black_baccara` | `velvet-rose-2.png` | `velvet-rose-3.png` | `velvet-rose-4.png` |
+| `rose.monica` | `monica.png` | `monica-3.png` | `monica-4.png` |
+| `rose.bajou` | `bajou-2.png` | `bajou-3.png` | Thiếu; dùng giai đoạn 3 |
+| `rose.eckart` | `eckart-2.png` | `eckart-3.png` | Thiếu; dùng giai đoạn 3 |
+| `rose.masora` | `masora-2.png` | `masora-3.png` | Thiếu; dùng giai đoạn 3 |
+
+`monica.png` được ánh xạ rõ ràng là giai đoạn 2. Muốn thêm `bajou-4.png`, thêm đúng mục sau vào `images.stages` của Bajou trong `src/data/plants/rose.ts`:
+
+```ts
+4:stage('bajou-4.png')
+```
+
+Tên tệp không được suy đoán theo convention. Icon cành hoa tạm dùng ảnh cây ở giai đoạn cao nhất vì `assetConfig.useBloomAsStemIcon = true`; thiếu ảnh `items/flowers/*` không tạo cảnh báo trong chế độ này.
+
+### UI
+
+| Tệp | Nơi dùng |
 |---|---|
-| `currency/coin.png` | Bắt buộc |
-| `currency/points_rose.png` | Bắt buộc |
-| `currency/gold.png` | Tùy chọn, dự phòng khi tách tiền vàng |
+| `ui/coin.png` | HUD, giá cửa hàng, thưởng đơn và giá bó hoa |
+| `ui/binh-tuoi.png` | Nút tưới, dấu cây cần nước, fallback bình tưới nâng cấp |
+| `ui/cai-dat.png` | Nút Cài đặt trên HUD |
+| `ui/nhiem-vu.png` | Nút Nhiệm vụ và đầu sheet nhiệm vụ |
 
-### Chân dung khách — 256×256
+Bình tưới đồng/bạc/vàng/kim cương dùng cùng `binh-tuoi.png` với tint đồng, bạc, vàng, cyan cho đến khi có ảnh riêng trong `items/watering_cans/`.
 
-12 ảnh bắt buộc: `customers/portraits/regular.png`, `husband_gift.png`, `tea_shop_owner.png`, `bride_to_be.png`, `proposer.png`, `student.png`, `collector.png`, `wedding_planner.png`, `teacher.png`, `cafe_owner.png`, `long_distance.png`, `designer.png`.
+## Ảnh tiếp theo cần vẽ
 
-Mỗi archetype có thể thêm hai ảnh tùy chọn `<archetypeKey>_happy.png` và `<archetypeKey>_upset.png` (24 ảnh). Mỗi khách còn có override tùy chọn `customers/portraits/by_id/<customerId>.png` với các ID: `customer.regular`, `customer.husband_gift`, `customer.tea_shop_owner`, `customer.bride_to_be`, `customer.proposer`, `customer.student`, `customer.collector`, `customer.wedding_planner`, `customer.teacher`, `customer.cafe_owner`, `customer.long_distance`, `customer.designer`. Thứ tự tra: `by_id` → mood → ảnh gốc → placeholder.
+- `pots/chau-vang.png`.
+- Giai đoạn 4 của Bajou, Eckart và Masora.
+- Hạt giống, bó hoa, cành hoa riêng, chân dung NPC, phông nền.
+- Phần lớn panel, frame, tab và icon UI còn lại.
 
-### Phông nền — 720×1600
+Phông nền khu vực nên là 720×1600; giữ nội dung quan trọng trong vùng trung tâm 720×1280. Chân dung khách vẫn là 256×256. Danh sách đầy đủ và trạng thái hiện thời luôn có trong kết quả `npm run check-assets`.
 
-Giữ mọi chi tiết quan trọng trong vùng an toàn 720×1280 ở giữa (từ y=160 đến y=1440). Dải 160 px phía trên và dưới chỉ nên là phần trang trí có thể kéo dài hoặc bị cắt.
+## Cấu hình bố cục và dữ liệu
 
-| Tệp | Trạng thái |
-|---|---|
-| `backgrounds/greenhouse.png` | Bắt buộc |
-| `backgrounds/packing_table.png` | Bắt buộc |
-| `backgrounds/farm_tools_shop.png` | Bắt buộc |
-| `backgrounds/counter_shop.png` | Bắt buộc |
-| `backgrounds/greenhouse_2.png`, `greenhouse_3.png`, `greenhouse_4.png` | Tùy chọn; thiếu thì dùng `greenhouse.png` |
+- Số đo UI: `src/data/layout.ts`.
+- Màu và chữ: `src/data/theme.ts`.
+- Căn lưới nhà kính 5×4: `GreenhouseDef.slotLayout` trong `src/data/greenhouses.ts`.
+- Ánh xạ ảnh và tỉ lệ: `src/data/pots.ts`, `src/data/plants/rose.ts`, `src/data/assetConfig.ts`.
 
-### Giao diện
-
-| Nhóm / kích thước | Tệp | Trạng thái |
-|---|---|---|
-| Ô nhà kính 256×256 | `ui/slot_empty.png`, `ui/slot_locked.png` | Bắt buộc |
-| Ô kho 128×128 | `ui/inventory_slot.png`, `ui/inventory_slot_selected.png` | Bắt buộc |
-| Khung hiếm 128×128 | `ui/frame_common.png`, `frame_rare.png`, `frame_epic.png`, `frame_legendary.png` | Bắt buộc |
-| Panel 9-slice | `ui/panel_bg.png`, `modal_bg.png`, `order_card_bg.png`, `tooltip_bg.png` | Bắt buộc |
-| Nút 9-slice | `ui/button_normal.png`, `button_hover.png`, `button_pressed.png`, `button_disabled.png` | Bắt buộc |
-| Tab 9-slice | `ui/tab_normal.png`, `tab_active.png` | Bắt buộc |
-| Thanh tiến độ 9-slice | `ui/progress_bg.png`, `progress_fill.png` | Bắt buộc |
-| Trạng thái cây 64×64 | `ui/icon_need_water.png`, `icon_ready.png` | Bắt buộc |
-| Icon chung 64×64 | `ui/icon_star_filled.png`, `icon_star_empty.png`, `icon_heart_favor.png`, `icon_timer.png`, `icon_lock.png`, `icon_close.png`, `icon_settings.png`, `icon_quest.png`, `icon_rank.png`, `icon_reject.png`, `icon_confirm.png` | Bắt buộc |
-| Icon khu vực 64×64 | `ui/tab_icon_greenhouse.png`, `tab_icon_packing.png`, `tab_icon_farm_tools.png`, `tab_icon_counter.png` | Bắt buộc |
-| Hiệu ứng 64×64 | `ui/fx_sparkle.png`, `fx_water_drop.png`, `fx_coin.png` | Tùy chọn |
-
-Tổng theo yêu cầu: 24 cây hoa, 6 chậu, 6 cành hoa, 3 hạt giống, 6 bó hoa, 4 bình tưới, 1 rương, 3 icon nhà kính, 2 tiền tệ bắt buộc, 12 chân dung, 4 phông nền và khoảng 45 ảnh UI/tùy chọn. `npm run check-assets` in chính xác số có/thiếu theo từng nhóm và liệt kê riêng ảnh bắt buộc/tùy chọn.
-
-## Mở rộng dữ liệu
-
-- Loài hoa mới: thêm file family tương tự `src/data/plants/rose.ts`, khai báo variant, seed và progress track; đưa family vào danh sách export tổng. Manifest sẽ sinh ảnh cây/cành/hạt từ dữ liệu.
-- Độ hiếm mới: thêm một dòng vào `src/data/rarities.ts`. Công thức seed 3★ so sánh `order`, nên Legendary đã sẵn sàng và tự được chọn khi variant có rarity phù hợp.
-- Khách mới: thêm `CustomerDef` trong `src/data/customers.ts`, archetype key, template và quà. Tên ngẫu nhiên lấy từ pool hơn 30 tên.
-- Bó hoa mới: thêm `BouquetDef` trong `src/data/bouquets.ts`; nguyên liệu dùng `match` theo variant/rarity/tag.
-- Nhiệm vụ mới: thêm `QuestDef` trong `src/data/tracks/roseTrack.ts`; nhiệm vụ chỉ lọc EventBus, không cần code riêng.
-- Chuyển nơi bán nâng cấp: đổi duy nhất `shopId` trong `src/data/wateringCans.ts` hoặc định nghĩa upgrade tương ứng.
-
-## Các giá trị mặc định đã chọn
-
-1. Một tiền `coin`, hiển thị là “xu”; mọi món vẫn giữ `currencyId`.
-2. Bình tưới bán tại `farm_tools`.
-3. Cây thiếu nước dừng lớn; `witherAfterSec: null`, chưa héo.
-4. `revealVariantFromStage = 1`.
-5. Ngưỡng giai đoạn `[0, 0.25, 0.60, 1.0]`.
-6. Mutation tối đa 75%; grow time không thấp hơn 30% gốc.
-7. Chậu thường giá cố định 5 xu; `priceFormula.enabled = false`.
-8. Hoàn 50% khi thay chậu (cấu hình đã dành sẵn; UI thay chậu chưa mở).
-9. Giá nhà kính 2/3/4 là 3.000/8.000/20.000 xu; tối đa 4, mỗi nhà 5×4.
-10. Hạt 2★ giá 150 xu; công thức bó hoa biết từ đầu.
-11. Rank 4 dùng loot 80% cẩm thạch / 15% vàng / 5% kim cương.
-12. Favor: hoàn tất +5/+10, thất bại −3/−5, tối thiểu 0; Close tặng hạt 2★ 10%, Soulmate thêm hạt 3★ 3%.
-13. Tối đa 4 đơn mở; đơn lẻ khoảng 2 giờ, bó thường 4 giờ, bó hiếm 8–24 giờ.
-14. Save key `flower-game-save`, autosave 10 giây; tiến trình offline dùng timestamp tuyệt đối.
-15. Khởi đầu: 100 xu, 1 nhà kính, 3 chậu thường, 3 hạt hồng 1★ và bình tưới đồng.
-16. Kích thước logic rộng 720, cao linh hoạt 1080–1680; vùng UI thiết yếu 720×1280 được căn giữa. Trên desktop và màn hình ngang, game nằm trong cột dọc tối đa khoảng 480 CSS px.
-
-Các con số trên đều nằm trong `src/data/`, không nằm rải rác trong logic gameplay.
+Game giữ nguyên ID trong save và không đổi `saveVersion`.

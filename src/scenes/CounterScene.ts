@@ -18,6 +18,7 @@ import { ScrollList } from '../ui/ScrollList';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { ProgressBar } from '../ui/ProgressBar';
+import { CurrencyLabel } from '../ui/CurrencyLabel';
 
 export class CounterScene {
   readonly view = new Container();
@@ -79,11 +80,12 @@ export class CounterScene {
     const request = order.lines.map((line) => { const name=line.match.itemId?bouquetById(line.match.itemId).name:line.match.variantId?variantById(line.match.variantId).name:STRINGS.flowerInventory;const have=line.match.itemId?this.game.inventory.count('bouquets',line.match.itemId):this.game.inventory.matchingFlowers(line.match).reduce((sum,[,count])=>sum+count,0);return`${name} ${have}/${line.count}`; }).join('\n');
     const card = new Card(width, LAYOUT.counter.cardHeight);
     const name = new Text({ text: customer.name, style: this.textStyle(THEME.font.heading, THEME.colors.text, true) }); name.position.set(THEME.spacing.md, THEME.spacing.md);
-    const info = new Text({ text: `${request}\n${STRINGS.expires}: ${formatDuration((order.expiresAt - this.game.clock.now()) / 1000)}  •  ${order.reward} ${STRINGS.coins}`, style: { ...this.textStyle(THEME.font.caption, THEME.colors.muted), lineHeight: THEME.font.body, wordWrap: true, wordWrapWidth: width - THEME.spacing.xl } }); info.position.set(THEME.spacing.md, THEME.spacing.xl + THEME.spacing.md);
+    const info = new Text({ text: `${request}\n${STRINGS.expires}: ${formatDuration((order.expiresAt - this.game.clock.now()) / 1000)}`, style: { ...this.textStyle(THEME.font.caption, THEME.colors.muted), lineHeight: THEME.font.body, wordWrap: true, wordWrapWidth: width - THEME.spacing.xl } }); info.position.set(THEME.spacing.md, THEME.spacing.xl + THEME.spacing.md);
+    const reward = new CurrencyLabel(this.textures, order.reward, THEME.font.caption, THEME.colors.primaryDark); reward.position.set(width - THEME.spacing.xxl - THEME.spacing.lg, THEME.spacing.md);
     const deliver = new Button(STRINGS.deliver, LAYOUT.counter.actionWidth, () => this.deliver(order), THEME.tap.min, THEME.font.caption);
     const reject = new Button(STRINGS.reject, LAYOUT.counter.actionWidth, () => this.confirmReject(order), THEME.tap.min, THEME.font.caption);
     const buttonsY = LAYOUT.counter.cardHeight - THEME.tap.min - THEME.spacing.md; deliver.position.set(THEME.spacing.md, buttonsY); reject.position.set(width - LAYOUT.counter.actionWidth - THEME.spacing.md, buttonsY);
-    deliver.setEnabled(this.game.orders.canDeliver(order)); card.addChild(name, info, deliver, reject); return card;
+    deliver.setEnabled(this.game.orders.canDeliver(order)); card.addChild(name, reward, info, deliver, reject); return card;
   }
 
   private emptyCard(width: number): Container {
@@ -91,7 +93,7 @@ export class CounterScene {
   }
 
   private deliver(order: OrderInstance): void {
-    if (this.game.orders.deliver(order)) { this.toast.show(`${STRINGS.orderDone} +${order.reward} ${STRINGS.coins}`); this.refresh(); }
+    if (this.game.orders.deliver(order)) { this.toast.showCurrency(`${STRINGS.orderDone} +${order.reward} ${STRINGS.coins}`); this.refresh(); }
     else this.toast.show(STRINGS.orderNeedItems);
   }
 

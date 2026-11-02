@@ -14,6 +14,7 @@ import { SegmentedTabs } from './SegmentedTabs';
 import { ScrollList } from './ScrollList';
 import { Card } from './Card';
 import { PointerGesture } from '../layout/PointerGesture';
+import { fitSprite } from '../render/fitSprite';
 
 type Category = 'seeds' | 'flowers' | 'bouquets' | 'pots';
 
@@ -64,7 +65,7 @@ export class InventorySheet {
   private slot(id: string, count: number, width: number): Container {
     const name = this.nameFor(id); const card = new Card(width, LAYOUT.inventory.slotHeight); card.eventMode = 'static'; card.cursor = 'pointer';
     const texture = this.category === 'pots' ? this.textures.getPotTexture(id) : this.textures.getItemTexture(id);
-    const icon = new Sprite(texture); icon.anchor.set(.5); icon.position.set(width / 2, THEME.spacing.xl); icon.width = icon.height = THEME.spacing.xxl;
+    const icon = new Sprite(texture); icon.anchor.set(.5); icon.position.set(width / 2, THEME.spacing.xl); fitSprite(icon,THEME.spacing.xxl,THEME.spacing.xxl);
     const label = new Text({ text: `${name}\n×${count}`, style: { fontFamily: THEME.font.family, fontSize: THEME.font.caption, fill: THEME.colors.text, align: 'center', wordWrap: true, wordWrapWidth: width - THEME.spacing.sm } }); label.anchor.set(.5, 0); label.position.set(width / 2, THEME.spacing.xxl + THEME.spacing.md);
     card.addChild(icon, label); card.hitArea = { contains: (x: number, y: number) => x >= 0 && x <= width && y >= 0 && y <= LAYOUT.inventory.slotHeight };
     const gesture=new PointerGesture(THEME.tap.dragCancelCss);card.on('pointerdown',(event)=>gesture.begin(event.pointerId,event.client.x,event.client.y));card.on('globalpointermove',(event)=>gesture.move(event.pointerId,event.client.x,event.client.y));card.on('pointerup',(event)=>{if(gesture.end(event.pointerId))this.modal.menu(STRINGS.inventoryDetails,`${name}\n${STRINGS.quantity}: ${count}`,[]);});card.on('pointerupoutside',(event)=>gesture.cancel(event.pointerId));card.on('pointercancel',(event)=>gesture.cancel(event.pointerId));return card;

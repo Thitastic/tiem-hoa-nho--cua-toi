@@ -51,9 +51,9 @@ async function main(): Promise<void> {
   const loader = new AssetLoader(); await loader.load(ASSET_MANIFEST); app.stage.removeChild(loadingBg, loadingText); loadingBg.destroy(); loadingText.destroy();
   const textures = new TextureProvider(loader, new PlaceholderFactory(app.renderer)); Button.configure(textures);
 
-  const game = new Game(); toast = new Toast(); modal = new Modal(); sheet = new BottomSheet(); let debug: DebugPanel | undefined; let active: SceneId = 'greenhouse';
+  const game = new Game(); toast = new Toast(textures); modal = new Modal(); sheet = new BottomSheet(); let debug: DebugPanel | undefined; let active: SceneId = 'greenhouse';
   const showSettings = () => modal!.menu(STRINGS.settings, STRINGS.settingsHint, [{ label: STRINGS.deleteData, action: () => modal!.confirm(STRINGS.deleteData, STRINGS.deleteConfirm, () => { game.deleteSave(); toast!.show(STRINGS.reloadAfterDelete); setTimeout(() => location.reload(), 800); }) }]);
-  const inventorySheet = new InventorySheet(game, textures, sheet, modal); const questSheet = new QuestSheet(game, sheet);
+  const inventorySheet = new InventorySheet(game, textures, sheet, modal); const questSheet = new QuestSheet(game, sheet, textures);
   tabs = new TabBar((id) => { active = id; tabs!.setActive(id); manager!.change(id); }); tabs.setActive(active);
   hud = new Hud(game, { onInventory: () => inventorySheet.open(), onQuests: () => questSheet.open(), onSettings: showSettings, onDebugToggle: () => debug?.toggle() });
   manager = new SceneManager(app, game, textures, toast, modal, sheet); manager.change(active);

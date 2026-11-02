@@ -14,6 +14,8 @@ import { ScrollList } from '../ui/ScrollList';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Chip } from '../ui/Chip';
+import { CurrencyLabel } from '../ui/CurrencyLabel';
+import { fitSprite } from '../render/fitSprite';
 
 export class PackingScene {
   readonly view = new Container();
@@ -69,13 +71,13 @@ export class PackingScene {
   private recipeCard(def: BouquetDef, width: number): Container {
     const card = new Card(width, LAYOUT.packing.cardHeight);
     const icon = new Sprite(this.textures.getItemTexture(def.id));
-    icon.position.set(THEME.spacing.md, THEME.spacing.md); icon.width = icon.height = LAYOUT.packing.iconSize;
+    icon.position.set(THEME.spacing.md, THEME.spacing.md); fitSprite(icon,LAYOUT.packing.iconSize,LAYOUT.packing.iconSize);
     const name = new Text({ text: def.name, style: this.textStyle(THEME.font.heading, THEME.colors.text, true) });
     name.position.set(THEME.spacing.xxl + LAYOUT.packing.iconSize, THEME.spacing.md);
     const chips = new Container(); const chipAreaWidth=width-name.x-THEME.spacing.md;const chipGap=THEME.spacing.sm;const chipWidth=(chipAreaWidth-chipGap)/2;
     def.ingredients.forEach((ingredient,index)=>{const id=ingredient.match.variantId!;const have=this.game.inventory.count('flowers',id);const chip=new Chip(`${variantById(id).name} ${have}/${ingredient.count}`,have>=ingredient.count,chipWidth);chip.position.set((index%2)*(chipWidth+chipGap),Math.floor(index/2)*(THEME.spacing.xl+chipGap));chips.addChild(chip);});
     chips.position.set(name.x,THEME.spacing.xxl+THEME.spacing.sm);
-    const price = new Text({ text: `${this.game.bouquets.price(def)} ${STRINGS.coins}  •  ${def.points} ${STRINGS.points}`, style: this.textStyle(THEME.font.caption, THEME.colors.primaryDark, true) });
+    const price = new CurrencyLabel(this.textures, `${this.game.bouquets.price(def)} · ${def.points} ${STRINGS.points}`, THEME.font.caption, THEME.colors.primaryDark);
     const actionY=LAYOUT.packing.cardHeight-THEME.tap.min-THEME.spacing.md;price.position.set(THEME.spacing.md,actionY+(THEME.tap.min-THEME.font.caption)/2);
     const select = new Button(STRINGS.select, LAYOUT.packing.actionWidth, () => { this.selected = def; this.refresh(); }, THEME.tap.min, THEME.font.caption);
     select.position.set(width - LAYOUT.packing.actionWidth - THEME.spacing.md,actionY);

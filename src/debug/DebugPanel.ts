@@ -12,6 +12,7 @@ import { SEEDS } from '../data/seeds';
 import { POTS } from '../data/pots';
 import { PLANT_VARIANTS } from '../data/plants/rose';
 import { StatResolver } from '../core/Modifier';
+import { resolvePlantAsset } from '../data/assetPaths';
 
 export class DebugPanel {
   private details?: Text;
@@ -28,10 +29,12 @@ export class DebugPanel {
   update(): void {
     if (!this.opened || !this.details) return; const second = Math.floor(this.game.clock.now() / 1000); if (second === this.lastSecond) return; this.lastSecond = second;
     const resolver = new StatResolver(() => this.game.globalModifiers(), STAT_LIMITS);
-    this.details.text = ['mutationChance', 'growTime', 'sellPrice', 'bouquetPrice', 'waterReduction'].map((stat) => {
+    const stats = ['mutationChance', 'growTime', 'sellPrice', 'bouquetPrice', 'waterReduction'].map((stat) => {
       const result = resolver.explain(stat, { base: stat === 'growTime' ? 3600 : stat.includes('Price') ? 100 : 0, family: 'rose', tag: 'rose', tags: ['rose'] });
       return `${stat}: ${result.result.toFixed(2)} · ${result.active.map((modifier) => modifier.source).join(', ') || '—'}`;
-    }).join('\n');
+    });
+    const selected=this.game.plants.findPlant(this.game.plants.debugSelectedPlantUid);const variantId=selected?.variantId??this.game.plants.forcedVariantId??PLANT_VARIANTS[0].id;const stage=this.game.plants.forcedStage??0;const image=resolvePlantAsset(variantId,stage as 0|1|2|3|4);
+    this.details.text=[...stats,`stage: ${this.game.plants.forcedStage??'auto'} · ${image?.path??'placeholder'}`].join('\n');
   }
 
   private open(): void {
@@ -44,6 +47,7 @@ export class DebugPanel {
       ...SEEDS.map((seed) => ({ label: `${STRINGS.addSeed} ${seed.starLevel}★`, action: () => this.game.inventory.add('seeds', seed.id, 1) })),
       ...POTS.map((pot) => ({ label: pot.name, action: () => this.game.inventory.add('pots', pot.id, 1) })),
       { label: STRINGS.forceVariant, action: () => { const current = this.game.plants.forcedVariantId; const index = PLANT_VARIANTS.findIndex((variant) => variant.id === current); this.game.plants.forcedVariantId = PLANT_VARIANTS[(index + 1) % PLANT_VARIANTS.length]?.id ?? null; this.toast.show(this.game.plants.forcedVariantId ?? STRINGS.automatic); } },
+      { label: `${STRINGS.forceStage}: ${this.game.plants.forcedStage??STRINGS.automatic}`, action: () => { const selected=this.game.plants.findPlant(this.game.plants.debugSelectedPlantUid);if(!selected){this.toast.show(STRINGS.selectPlantForDebug);return;}const current=this.game.plants.forcedStage;this.game.plants.forcedStage=current===null?0:current>=4?null:current+1;const asset=this.game.plants.forcedStage===null?undefined:resolvePlantAsset(selected.variantId,this.game.plants.forcedStage as 0|1|2|3|4);this.toast.show(this.game.plants.forcedStage===null?STRINGS.automatic:`${STRINGS.stage} ${this.game.plants.forcedStage}: ${asset?.file??'placeholder'}`);this.opened=false;this.open(); } },
     ];
     const gap = THEME.tap.gap; const buttonWidth = (width - gap) / 2;
     for (let index = 0; index < actions.length; index += 2) { const row = new Container(); actions.slice(index, index + 2).forEach((action, column) => { const button = new Button(action.label, buttonWidth, action.action, THEME.tap.min, THEME.font.caption); button.x = column * (buttonWidth + gap); row.addChild(button); }); rows.push(row); }

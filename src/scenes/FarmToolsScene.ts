@@ -17,6 +17,8 @@ import { ScrollList } from '../ui/ScrollList';
 import { SegmentedTabs } from '../ui/SegmentedTabs';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { CurrencyLabel } from '../ui/CurrencyLabel';
+import { fitSprite } from '../render/fitSprite';
 
 type ShopCategory = 'seed' | 'pot' | 'greenhouse' | 'upgrade';
 
@@ -64,12 +66,13 @@ export class FarmToolsScene {
     else if (entry.type === 'upgrade') { const def = upgradeById(entry.targetId); const level = this.game.upgrades.level(def.id); name = def.name; cost = def.levels[level]?.cost ?? null; texture = this.textures.getItemTexture(def.id); effect = `${STRINGS.rank} ${level}/${def.maxLevel}`; }
     else { const def = greenhouseById(entry.targetId); name = def.name; cost = def.buildCost; texture = this.textures.getItemTexture(def.id); effect = `${def.slotsGrid.w * def.slotsGrid.h} ${STRINGS.inventoryCategories.pots}`; }
     const card = new Card(width, LAYOUT.shop.cardHeight);
-    const icon = new Sprite(texture); icon.position.set(THEME.spacing.md, THEME.spacing.md); icon.width = icon.height = LAYOUT.shop.iconSize;
+    const icon = new Sprite(texture); icon.position.set(THEME.spacing.md, THEME.spacing.md); fitSprite(icon,LAYOUT.shop.iconSize,LAYOUT.shop.iconSize); icon.tint = this.textures.getItemTint(entry.targetId);
     const title = new Text({ text: name, style: { fontFamily: THEME.font.family, fontSize: THEME.font.body, fontWeight: '700', fill: THEME.colors.text } }); title.position.set(THEME.spacing.xxl + LAYOUT.shop.iconSize, THEME.spacing.md);
-    const info = new Text({ text: `${effect}\n${STRINGS.price}: ${cost ?? '—'} ${STRINGS.coins}`, style: { fontFamily: THEME.font.family, fontSize: THEME.font.caption, fill: cost !== null && cost > this.game.wallet.balance('coin') ? THEME.colors.danger : THEME.colors.muted, lineHeight: THEME.font.body } }); info.position.set(title.x, THEME.spacing.xl + THEME.spacing.sm);
+    const info = new Text({ text: effect, style: { fontFamily: THEME.font.family, fontSize: THEME.font.caption, fill: THEME.colors.muted } }); info.position.set(title.x, THEME.spacing.xl + THEME.spacing.sm);
+    const priceLabel = new CurrencyLabel(this.textures, cost ?? '—', THEME.font.caption, cost !== null && cost > this.game.wallet.balance('coin') ? THEME.colors.danger : THEME.colors.muted); priceLabel.position.set(title.x, THEME.spacing.xxl + THEME.spacing.md);
     const owned = entry.type === 'upgrade' && this.game.upgrades.level(entry.targetId) >= upgradeById(entry.targetId).maxLevel;
     const button = new Button(owned ? STRINGS.owned : STRINGS.buy, LAYOUT.shop.actionWidth, () => this.buy(entry), THEME.tap.min, THEME.font.caption); button.position.set(width - LAYOUT.shop.actionWidth - THEME.spacing.md, LAYOUT.shop.cardHeight - THEME.tap.min - THEME.spacing.md); button.setEnabled(!owned && cost !== null && cost <= this.game.wallet.balance('coin'));
-    card.addChild(icon, title, info, button); return card;
+    card.addChild(icon, title, info, priceLabel, button); return card;
   }
 
   private buy(entry: ShopEntry): void {
