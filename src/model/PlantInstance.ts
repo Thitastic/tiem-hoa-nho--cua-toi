@@ -1,1 +1,1 @@
-export interface PlantInstance{uid:string;variantId:string;seedId:string;potUid:string;plantedAt:number;progressSec:number;lastWateredAt:number}
+export interface PlantInstance{uid:string;variantId:string;seedId:string;potUid:string;plantedAt:number;progressSec:number;lastWateredAt:number;growTimeSecAtPlant:number}

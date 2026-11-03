@@ -7,7 +7,7 @@ import type { ViewportInfo } from '../layout/LayoutManager';
 import type { OrderInstance } from '../model/OrderInstance';
 import { computeRegions } from '../layout/LayoutManager';
 import { customerById } from '../data/customers';
-import { variantById } from '../data/plants/rose';
+import { variantById } from '../data/catalogRegistry';
 import { bouquetById } from '../data/bouquets';
 import { FAVOR_LEVELS } from '../data/favorLevels';
 import { STRINGS } from '../data/strings';

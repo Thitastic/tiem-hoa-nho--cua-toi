@@ -1,0 +1,3 @@
+import type{PlayerLevelDef}from'../data/levels';
+export const levelFromExp=(totalExp:number,levels:readonly PlayerLevelDef[]):number=>{const exp=Math.max(0,Math.floor(totalExp));let level=levels[0]?.level??1;for(const def of levels)if(exp>=def.expRequired)level=def.level;else break;return level;};
+export const levelProgress=(totalExp:number,levels:readonly PlayerLevelDef[])=>{const level=levelFromExp(totalExp,levels);const current=levels.find((item)=>item.level===level)!;const next=levels.find((item)=>item.level===level+1);return{level,currentExp:Math.max(0,totalExp-current.expRequired),requiredExp:next?next.expRequired-current.expRequired:0,ratio:next?Math.min(1,(totalExp-current.expRequired)/(next.expRequired-current.expRequired)):1,next};};

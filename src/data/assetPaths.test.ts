@@ -1,6 +1,4 @@
-// @ts-expect-error Vitest chạy trong Node; app production không kéo node types.
 import{existsSync}from'node:fs';
-// @ts-expect-error Vitest chạy trong Node; app production không kéo node types.
 import{resolve}from'node:path';
 import{describe,expect,it}from'vitest';
 import{ASSET_MANIFEST,resolvePlantAsset,resolveStemAsset}from'./assetPaths';

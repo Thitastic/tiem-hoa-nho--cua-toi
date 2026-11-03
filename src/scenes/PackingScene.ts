@@ -6,7 +6,7 @@ import type { ViewportInfo } from '../layout/LayoutManager';
 import type { BouquetDef } from '../core/types';
 import { computeRegions } from '../layout/LayoutManager';
 import { BOUQUETS } from '../data/bouquets';
-import { variantById } from '../data/plants/rose';
+import { variantById } from '../data/catalogRegistry';
 import { STRINGS } from '../data/strings';
 import { LAYOUT } from '../data/layout';
 import { THEME } from '../data/theme';

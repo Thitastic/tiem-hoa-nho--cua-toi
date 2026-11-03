@@ -12,6 +12,32 @@ npm run build
 npm run check-assets
 ```
 
+`npm run dev` chạy đồng thời game ở Vite và server catalog ở cổng `3000`. Vite tự chuyển tiếp `/api` và `/uploads` sang server. Có thể chỉ chạy backend bằng `npm run server`.
+
+## Cấp người chơi
+
+Người chơi nhận EXP khi thu hoạch, bán cành và bán bó hoa. Cấp được suy ra từ tổng EXP, tối đa cấp 30; EXP vẫn tiếp tục tích sau cấp tối đa. Bảng cấp và EXP nguồn nằm trong `src/data/levels.ts`, EXP bó hoa nằm trong `src/data/bouquets.ts`. Loài đã mở khóa được lưu trong save nên không bị khóa lại nếu cấp yêu cầu trên server thay đổi.
+
+## Trang quản trị và catalog SQLite
+
+1. Sao chép `.env.example` thành `.env` hoặc đặt các biến môi trường tương đương. Luôn dùng `ADMIN_TOKEN` dài, ngẫu nhiên khi triển khai.
+2. Chạy `npm run dev`, mở `http://localhost:5173/admin.html` (production dùng `/admin`) và nhập token.
+3. Chọn **Thêm loài hoa**, khai báo một biến thể gốc, lưu, rồi tải ảnh PNG/WebP vào các vị trí. Loài mới mặc định mở ở cấp 2.
+4. Game tải lại catalog khi khởi động và khi trở lại tab nếu cache đã quá 10 phút. Khi server tắt, game dùng cache gần nhất rồi catalog hoa hồng tích hợp.
+
+Các lệnh dữ liệu:
+
+```bash
+npm run db:migrate
+npm run db:seed
+npm run catalog:export -- catalog-backup.json
+npm run catalog:import -- catalog-backup.json
+```
+
+Sao lưu đầy đủ cần cả `data/catalog.sqlite` và thư mục `uploads/`. File JSON export chỉ chứa catalog và danh sách đường dẫn, không chứa byte ảnh. Production dùng `npm run build` rồi `npm start`; server phục vụ game, `/admin`, API và ảnh upload.
+
+Admin phiên bản đầu chỉ quản lý loài, biến thể và ảnh; không quản lý bó hoa, nhiệm vụ hay hạng hoa hồng. Tính năng này cần máy chủ Node và SQLite; host tĩnh như GitHub Pages không chạy được admin/upload, nhưng game vẫn mở bằng catalog tích hợp.
+
 Mở trên điện thoại cùng mạng bằng `npm run dev -- --host`, sau đó truy cập địa chỉ LAN do Vite in ra. Nhấn phím ``` ``` trên desktop hoặc chạm 5 lần vào bộ đếm xu để mở bảng thử nghiệm.
 
 `npm run check-assets` chỉ đọc manifest và filesystem. Lệnh in ảnh hiện có/đang thiếu theo nhóm, phân biệt bắt buộc/tùy chọn và liệt kê mọi tệp trong `public/assets` chưa được dữ liệu tham chiếu.

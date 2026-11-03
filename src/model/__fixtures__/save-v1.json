@@ -1,0 +1,41 @@
+{
+  "saveVersion": 1,
+  "savedAt": 1600000,
+  "player": { "activeGreenhouseId": "greenhouse_1", "createdAt": 1000000 },
+  "greenhouses": [
+    {
+      "uid": "greenhouse_1",
+      "defId": "greenhouse_1",
+      "pots": [
+        { "uid": "pot_start_1", "potId": "pot_common", "slotIndex": 0, "plantUid": "plant_old" }
+      ]
+    }
+  ],
+  "plants": [
+    {
+      "uid": "plant_old",
+      "variantId": "rose.red_naomi",
+      "seedId": "seed.rose.1",
+      "potUid": "pot_start_1",
+      "plantedAt": 1000000,
+      "progressSec": 0,
+      "lastWateredAt": 1000000
+    }
+  ],
+  "orders": [
+    {
+      "uid": "order_old",
+      "customerId": "customer.regular",
+      "templateId": "order.red_small",
+      "lines": [
+        { "match": { "variantId": "rose.red_naomi" }, "count": 2 }
+      ],
+      "createdAt": 1200000,
+      "expiresAt": 8400000,
+      "reward": 44,
+      "status": "Open"
+    }
+  ],
+  "progress": { "rose": 0 },
+  "upgrades": { "can_copper": 1 }
+}

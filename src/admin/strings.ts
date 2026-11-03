@@ -1,0 +1,16 @@
+export const ADMIN_STRINGS={
+  title:'Quản trị danh mục hoa',loginTitle:'Đăng nhập quản trị',token:'Mã quản trị',login:'Đăng nhập',logout:'Đăng xuất',
+  species:'Loài hoa',create:'Thêm loài hoa',edit:'Chỉnh sửa',save:'Lưu',cancel:'Hủy',archive:'Lưu trữ',restore:'Khôi phục',
+  builtin:'Có sẵn',archived:'Đã lưu trữ',active:'Đang hoạt động',images:'ảnh',imageCompleteness:'Độ đầy đủ ảnh',
+  id:'ID',vietnameseName:'Tên tiếng Việt',englishName:'Tên tiếng Anh',unlockLevel:'Cấp mở khóa',seedPrice:'Giá hạt 1★',seed2Multiplier:'Hệ số giá 2★',
+  timing:'Thời gian',growMinutes:'Thời gian lớn (phút)',waterMinutes:'Chu kỳ tưới (phút)',mutationPercent:'Tỷ lệ đột biến (%)',
+  advanced:'Nâng cao',thresholds:'Ngưỡng 5 giai đoạn',revealStage:'Hiện biến thể từ giai đoạn',pauseDry:'Dừng lớn khi khô',
+  variants:'Các biến thể',addVariant:'Thêm biến thể',key:'Key',rarity:'Độ hiếm',base:'Biến thể gốc',weight:'Trọng số',yield:'Số cành',unitPrice:'Giá mỗi cành',remove:'Bỏ',
+  uploadTitle:'Ảnh của loài hoa',upload:'Tải ảnh',deleteImage:'Xóa ảnh',variantKey:'Biến thể',slot:'Vị trí',preview:'Xem trước 5 giai đoạn',missing:'Chưa có ảnh',
+  imageGuide:'PNG hoặc WebP; giai đoạn cây nên 256×256, cành/hạt nên 128×128; nền trong suốt, cây neo giữa phía dưới. Tối đa 2 MB và 2048×2048.',
+  builtinNote:'Loài hoa có sẵn: chỉ có thể đổi cấp mở khóa và ảnh; các thông số cân bằng được khóa.',
+  loading:'Đang tải…',saved:'Đã lưu.',loginFailed:'Đăng nhập thất bại.',requestFailed:'Yêu cầu thất bại.',confirmArchive:'Lưu trữ loài hoa này?',
+  noFamilies:'Chưa có loài hoa.',newSpecies:'Loài hoa mới',squareWarning:'Ảnh không vuông; nên dùng tỷ lệ 1:1.',
+  defaultVariantName:'Hoa cơ bản',rarities:{common:'Thường',rare:'Hiếm',epic:'Sử thi',legendary:'Huyền thoại'},
+  imageInfo:(width:number,height:number,kb:number)=>`${width}×${height} · ${kb} KB`,
+} as const;

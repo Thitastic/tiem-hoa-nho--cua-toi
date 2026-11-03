@@ -1,7 +1,5 @@
 import { defineConfig } from 'vitest/config';
-// @ts-expect-error Vite config chạy trong Node; app không kéo node types.
 import { existsSync, readdirSync } from 'node:fs';
-// @ts-expect-error Vite config chạy trong Node; app không kéo node types.
 import { relative, resolve } from 'node:path';
 declare const process:{cwd:()=>string};
 
@@ -12,5 +10,8 @@ const presentAssets=existsSync(assetsRoot)?readdirSync(assetsRoot,{recursive:tru
 
 export default defineConfig({
   define:{__PRESENT_ASSETS__:JSON.stringify(presentAssets)},
-  test:{environment:'node',include:['src/**/*.test.ts']},
+  plugins:[{name:'admin-route',configureServer(server){server.middlewares.use('/admin',(request,response,next)=>{if(request.url==='/'||request.url===''){response.statusCode=302;response.setHeader('Location','/admin.html');response.end();return;}next();});}}],
+  server:{proxy:{'/api':'http://localhost:3000','/uploads':'http://localhost:3000'}},
+  build:{rollupOptions:{input:{game:resolve(process.cwd(),'index.html'),admin:resolve(process.cwd(),'admin.html')}}},
+  test:{environment:'node',include:['src/**/*.test.ts','server/**/*.test.ts']},
 });

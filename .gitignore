@@ -1,3 +1,9 @@
 node_modules
 dist
+dist-server
 .idea
+.env
+data/*
+!data/.gitkeep
+uploads/*
+!uploads/.gitkeep

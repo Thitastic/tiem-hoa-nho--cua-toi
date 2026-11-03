@@ -1,0 +1,1 @@
+export const CATALOG_DEFAULTS={newFamilyUnlockLevel:2,seed2StarPriceMult:3,stageThresholds:[0,.20,.45,.75,1]as[number,number,number,number,number],revealVariantFromStage:2,growthPausesWhenDry:true,unknown:{growTimeSec:3600,wateringIntervalSec:1500,baseSeedPrice:1},refreshAfterMs:600_000,fetchTimeoutMs:3_000,cacheKey:'catalog-cache'}as const;

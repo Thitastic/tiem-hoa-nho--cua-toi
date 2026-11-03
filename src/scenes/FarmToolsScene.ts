@@ -5,7 +5,7 @@ import type { Toast } from '../ui/Toast';
 import type { ViewportInfo } from '../layout/LayoutManager';
 import type { ShopEntry } from '../core/types';
 import { computeRegions } from '../layout/LayoutManager';
-import { SHOP_ENTRIES } from '../data/shop';
+import { allShopEntries } from '../data/shop';
 import { seedById } from '../data/seeds';
 import { potById } from '../data/pots';
 import { upgradeById } from '../data/upgrades';
@@ -19,6 +19,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CurrencyLabel } from '../ui/CurrencyLabel';
 import { fitSprite } from '../render/fitSprite';
+import { familyById } from '../data/catalogRegistry';
 
 type ShopCategory = 'seed' | 'pot' | 'greenhouse' | 'upgrade';
 
@@ -55,7 +56,7 @@ export class FarmToolsScene {
 
   private refresh(): void {
     const width = LAYOUT.designWidth - LAYOUT.sidePadding * 2;
-    const entries = [...SHOP_ENTRIES].filter((entry) => entry.type === this.category).sort((a, b) => a.order - b.order);
+    const entries = allShopEntries().filter((entry) => entry.type === this.category).sort((a, b) => a.order - b.order);
     this.list.setItems(entries.map((entry) => this.itemCard(entry, width)), LAYOUT.scene.listGap); this.list.scrollToTop();
   }
 
@@ -70,15 +71,16 @@ export class FarmToolsScene {
     const title = new Text({ text: name, style: { fontFamily: THEME.font.family, fontSize: THEME.font.body, fontWeight: '700', fill: THEME.colors.text } }); title.position.set(THEME.spacing.xxl + LAYOUT.shop.iconSize, THEME.spacing.md);
     const info = new Text({ text: effect, style: { fontFamily: THEME.font.family, fontSize: THEME.font.caption, fill: THEME.colors.muted } }); info.position.set(title.x, THEME.spacing.xl + THEME.spacing.sm);
     const priceLabel = new CurrencyLabel(this.textures, cost ?? '—', THEME.font.caption, cost !== null && cost > this.game.wallet.balance('coin') ? THEME.colors.danger : THEME.colors.muted); priceLabel.position.set(title.x, THEME.spacing.xxl + THEME.spacing.md);
+    const locked=entry.type==='seed'&&!this.game.level.isFamilyUnlocked(seedById(entry.targetId).familyId);if(locked){info.text=STRINGS.unlockAtLevel(familyById(seedById(entry.targetId).familyId).unlockLevel);icon.tint=THEME.colors.disabled;}
     const owned = entry.type === 'upgrade' && this.game.upgrades.level(entry.targetId) >= upgradeById(entry.targetId).maxLevel;
-    const button = new Button(owned ? STRINGS.owned : STRINGS.buy, LAYOUT.shop.actionWidth, () => this.buy(entry), THEME.tap.min, THEME.font.caption); button.position.set(width - LAYOUT.shop.actionWidth - THEME.spacing.md, LAYOUT.shop.cardHeight - THEME.tap.min - THEME.spacing.md); button.setEnabled(!owned && cost !== null && cost <= this.game.wallet.balance('coin'));
+    const button = new Button(locked?STRINGS.locked:owned ? STRINGS.owned : STRINGS.buy, LAYOUT.shop.actionWidth, () => this.buy(entry), THEME.tap.min, THEME.font.caption); button.position.set(width - LAYOUT.shop.actionWidth - THEME.spacing.md, LAYOUT.shop.cardHeight - THEME.tap.min - THEME.spacing.md); button.setEnabled(!locked&&!owned && cost !== null && cost <= this.game.wallet.balance('coin'));
     card.addChild(icon, title, info, priceLabel, button); return card;
   }
 
   private buy(entry: ShopEntry): void {
     const result = this.game.shop.buy(entry);
     if (result === 'ok') this.toast.show(entry.type === 'seed' ? STRINGS.seedBought : entry.type === 'pot' ? STRINGS.potBought : entry.type === 'upgrade' ? STRINGS.upgradeBought : STRINGS.greenhouseBuilt);
-    else this.toast.show(result === 'funds' ? STRINGS.notEnoughCoins : result === 'full' ? STRINGS.fullGreenhouse : result === 'owned' ? STRINGS.owned : STRINGS.noRoom);
+    else this.toast.show(result === 'funds' ? STRINGS.notEnoughCoins : result === 'full' ? STRINGS.fullGreenhouse : result === 'owned' ? STRINGS.owned : result==='locked'?STRINGS.speciesLocked:STRINGS.noRoom);
     this.refresh();
   }
 }

@@ -1,0 +1,14 @@
+import type{EventBus}from'../core/EventBus';import type{GameEvent,PlantFamilyDef}from'../core/types';import{StatResolver,type Modifier}from'../core/Modifier';import{STAT_LIMITS}from'../data/config';import{EXP_SOURCES,PLAYER_LEVELS}from'../data/levels';import{levelFromExp,levelProgress}from'../core/playerLevel';import{bouquetById}from'../data/bouquets';import type{SaveData}from'../model/SaveData';
+export class LevelService{
+  private newUnlocks:string[]=[];
+  constructor(private save:SaveData,private events:EventBus,private modifiers:()=>Modifier[],private families:()=>PlantFamilyDef[]){events.on('*',(event)=>this.onEvent(event));this.reconcileUnlocks();}
+  level():number{return levelFromExp(this.save.player.totalExp,PLAYER_LEVELS);}
+  progress(){return levelProgress(this.save.player.totalExp,PLAYER_LEVELS);}
+  isFamilyUnlocked(familyId:string):boolean{return this.save.player.unlockedFamilyIds.includes(familyId);}
+  reconcileUnlocks():string[]{const level=this.level();const added=this.families().filter((family)=>family.unlockLevel<=level&&!this.isFamilyUnlocked(family.id)).map((family)=>family.id);this.save.player.unlockedFamilyIds.push(...added);this.newUnlocks.push(...added);return added;}
+  consumeNewUnlocks():string[]{return this.newUnlocks.splice(0);}
+  setTotalExp(value:number):void{this.save.player.totalExp=Math.max(0,Math.floor(value));this.reconcileUnlocks();}
+  addExp(baseAmount:number,source:string,event:GameEvent):number{if(baseAmount<=0)return 0;const before=this.level();const amount=Math.max(0,Math.round(new StatResolver(this.modifiers,STAT_LIMITS).get('expGain',{base:baseAmount,family:typeof event.payload.familyId==='string'?event.payload.familyId:undefined,rarity:typeof event.payload.rarity==='string'?event.payload.rarity:undefined})));if(!amount)return 0;this.save.player.totalExp+=amount;const after=this.level();this.reconcileUnlocks();this.events.emit({type:'ExpGained',at:event.at,payload:{amount,source}});for(let level=before+1;level<=after;level++)this.events.emit({type:'LevelUp',at:event.at,payload:{level}});return amount;}
+  isRewardItemUnlocked(itemId:string):boolean{return!itemId.startsWith('seed.')||this.isFamilyUnlocked(itemId.split('.')[1]);}
+  private onEvent(event:GameEvent):void{if(event.type==='Harvested'){const rarity=String(event.payload.rarity)as keyof typeof EXP_SOURCES.harvestPerStem;this.addExp((EXP_SOURCES.harvestPerStem[rarity]??0)*Number(event.payload.count??0),'harvest',event);}else if(event.type==='SoldItem'){const rarity=String(event.payload.rarity)as keyof typeof EXP_SOURCES.sellPerStem;this.addExp((EXP_SOURCES.sellPerStem[rarity]??0)*Number(event.payload.count??0),'sell',event);}else if(event.type==='BouquetSold'){const bouquet=bouquetById(String(event.payload.bouquetId));if(bouquet)this.addExp(bouquet.exp*Number(event.payload.count??1),'bouquet',event);}}
+}

@@ -1,7 +1,7 @@
 import type{Texture}from'pixi.js';
 import{assetByKey,ASSET_SIZES,resolvePlantAsset,resolveStemAsset,type ResolvedPlantAsset}from'../data/assetPaths';
 import{assetConfig}from'../data/assetConfig';
-import{PLANT_VARIANTS}from'../data/plants/rose';
+import{allPlantVariants}from'../data/catalogRegistry';
 import{potById}from'../data/pots';
 import{customerById}from'../data/customers';
 import{rarityById}from'../data/rarities';
@@ -29,7 +29,7 @@ export class TextureProvider{
   getPotTexture(potId:string):Texture{potById(potId);return this.getTexture(`pot:${potId}`);}
   getItemTexture(itemId:string):Texture{
     const direct=`item:${itemId}`;if(this.loader.has(direct))return this.loader.get(direct)!;
-    if(assetConfig.useBloomAsStemIcon&&PLANT_VARIANTS.some((variant)=>variant.id===itemId)){const bloom=resolveStemAsset(itemId);if(bloom)return this.getTexture(bloom.key);}
+    if(allPlantVariants().some((variant)=>variant.id===itemId)){const bloom=resolveStemAsset(itemId);if(bloom)return this.getTexture(bloom.key);}
     if(itemId in assetConfig.wateringCanTint)return this.getTexture('ui:icon_need_water');
     return this.getTexture(direct);
   }

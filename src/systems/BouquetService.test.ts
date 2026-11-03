@@ -1,2 +1,18 @@
-import{describe,expect,it}from'vitest';import{BouquetService}from'./BouquetService';import{InventoryService}from'./InventoryService';import{EventBus}from'../core/EventBus';import{GameClock}from'../core/GameClock';import{BOUQUETS}from'../data/bouquets';
-describe('BouquetService',()=>{it('kiểm tra, trừ nguyên liệu, tính giá và điểm',()=>{const data={seeds:{},flowers:{'rose.red_naomi':8},bouquets:{},pots:{},items:{}};const inventory=new InventoryService(data);const service=new BouquetService(inventory,()=>[],new EventBus(),new GameClock(0));const def=BOUQUETS[0];expect(service.canCraft(def)).toBe(true);expect(service.price(def)).toBe(210);expect(service.points(def)).toBe(30);expect(service.craft(def)).toBe(true);expect(inventory.count('flowers','rose.red_naomi')).toBe(0);expect(inventory.count('bouquets',def.id)).toBe(1);expect(service.canCraft(def)).toBe(false);});});
+import { describe, expect, it } from 'vitest';
+import { BouquetService } from './BouquetService';
+import { InventoryService } from './InventoryService';
+import { EventBus } from '../core/EventBus';
+import { UtcClock } from '../core/UtcClock';
+import { BOUQUETS } from '../data/bouquets';
+
+describe('BouquetService', () => {
+  it('kiểm tra, trừ nguyên liệu, tính giá và điểm', () => {
+    const data = { seeds:{}, flowers:{ 'rose.red_naomi':8 }, bouquets:{}, pots:{}, items:{} };
+    const inventory = new InventoryService(data);
+    const service = new BouquetService(inventory, () => [], new EventBus(), new UtcClock({ nowUtcMs:() => 0 }));
+    const def = BOUQUETS[0];
+    expect(service.canCraft(def)).toBe(true); expect(service.price(def)).toBe(210); expect(service.points(def)).toBe(30);
+    expect(service.craft(def)).toBe(true); expect(inventory.count('flowers', 'rose.red_naomi')).toBe(0);
+    expect(inventory.count('bouquets', def.id)).toBe(1); expect(service.canCraft(def)).toBe(false);
+  });
+});

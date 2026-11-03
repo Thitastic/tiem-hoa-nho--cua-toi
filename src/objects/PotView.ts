@@ -5,7 +5,7 @@ import{THEME}from'../data/theme';
 import{LAYOUT}from'../data/layout';
 import{assetConfig}from'../data/assetConfig';
 import{potById}from'../data/pots';
-import{familyById,variantById}from'../data/plants/rose';
+import{familyById,variantById}from'../data/catalogRegistry';
 import{ProgressBar}from'../ui/ProgressBar';
 import{PlantSprite}from'./PlantSprite';
 import{PointerGesture}from'../layout/PointerGesture';

@@ -4,7 +4,7 @@ import type { TextureProvider } from '../render/TextureProvider';
 import type { BottomSheet } from './BottomSheet';
 import type { Modal } from './Modal';
 import { seedById } from '../data/seeds';
-import { variantById } from '../data/plants/rose';
+import { variantById } from '../data/catalogRegistry';
 import { bouquetById } from '../data/bouquets';
 import { potById } from '../data/pots';
 import { STRINGS } from '../data/strings';

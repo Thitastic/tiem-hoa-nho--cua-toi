@@ -2,7 +2,7 @@ import type{PlantFamilyDef,PlantStage}from'../../core/types';
 
 const stage=(file:string,displayScale?:number)=>({file,...(displayScale?{displayScale}:{})});
 export const ROSE_FAMILY:PlantFamilyDef={
-  id:'rose',name:'Hoa hồng',baseVariantId:'rose.red_naomi',growTimeSec:3600,wateringIntervalSec:[1500],mutationChance:.2,
+  id:'rose',name:'Hoa hồng',englishName:'Rose',unlockLevel:1,baseSeedPrice:50,seed2StarPriceMult:3,tags:['rose'],archived:false,builtin:true,baseVariantId:'rose.red_naomi',growTimeSec:3600,wateringIntervalSec:[1500],growthPausesWhenDry:true,mutationChance:.2,
   revealVariantFromStage:2,stageThresholds:[0,.20,.45,.75,1.0],witherAfterSec:null,tempRange:[],
   images:{folder:'rose',shared:{0:stage('step-0.png'),1:stage('step-1.png')},plantOffset:{x:0,y:0}},
   variants:[
