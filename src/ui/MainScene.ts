@@ -3,14 +3,18 @@ import {
     Container,
     Graphics,
     Text,
-    TextStyle,
-    Rectangle,
 } from "pixi.js";
 
 // Components
 import { AvatarFrame } from "../components/AvatarFrame";
 import { CurrencyFrame } from "../components/CurrencyFrame";
 import { ImageButton } from "../components/ImageButton";
+import { BottomDock, type DockSceneKey } from "../components/BottomDock";
+import { gameStore } from "../services/GameSession";
+import { FloatingEvents } from "../components/FloatingEvents";
+import { StorageDialog } from "../components/StorageDialog";
+import type { Event } from "../models/Event";
+import { EventScene } from "../scenes/EventScene";
 
 // Scenes
 import { BaseScene } from "../scenes/BaseScene";
@@ -23,11 +27,7 @@ import { CreateBouquetScene } from "../scenes/CreateBouquetScene";
 // TYPES
 // =====================================================
 
-type SceneKey =
-    | "greenhouse"
-    | "tools"
-    | "market"
-    | "bouquet";
+type SceneKey = DockSceneKey;
 
 // =====================================================
 // LAYOUT CONFIG
@@ -68,6 +68,9 @@ export class MainScreen extends Container {
     private content = new Container();
     private navigation = new Container();
     private floating = new Container();
+    private readonly eventScene = new EventScene(() => this.closeEvent());
+    private floatingEvents?: FloatingEvents;
+    private readonly storageDialog = new StorageDialog();
 
     // ===================================
     // BACKGROUNDS
@@ -76,6 +79,7 @@ export class MainScreen extends Container {
     private backgroundGraphics = new Graphics();
     private contentBackground = new Graphics();
     private navigationBackground = new Graphics();
+    private bottomDock!: BottomDock;
 
     // ===================================
     // HEADER COMPONENTS
@@ -84,6 +88,7 @@ export class MainScreen extends Container {
     private avatarFrame!: AvatarFrame;
     private coinFrame!: CurrencyFrame;
     private diamondFrame!: CurrencyFrame;
+    private unsubscribePlayer?: () => void;
 
     // ===================================
     // SCENES
@@ -102,15 +107,6 @@ export class MainScreen extends Container {
         bouquet: new CreateBouquetScene(),
     };
 
-    // Navigation buttons
-    private tabButtons = new Map<
-        SceneKey,
-        {
-            background: Graphics;
-            text: Text;
-        }
-    >();
-
     // =====================================================
     // CONSTRUCTOR
     // =====================================================
@@ -124,123 +120,15 @@ export class MainScreen extends Container {
         this.createHeader();
         this.createNavigation();
         this.createFloatingButtons();
+        // Popup phải nằm trên HUD, scene và dock.
+        this.addChild(this.storageDialog);
+
+        // Cập nhật HUD ngay khi mở game và sau mọi lần GameStore.save().
+        this.unsubscribePlayer = gameStore.subscribe(() => this.refreshPlayerHud());
 
         this.switchScene("greenhouse");
 
         this.resizeLayout(this.screenHeight);
-    }
-
-    // =====================================================
-    // TEXT HELPER
-    // =====================================================
-
-    private createText(
-        value: string,
-        size = 18,
-        color = COLORS.text,
-        bold = false
-    ): Text {
-        return new Text({
-            text: value,
-
-            style: new TextStyle({
-                fontFamily: "Arial, sans-serif",
-                fontSize: size,
-                fill: color,
-                fontWeight: bold
-                    ? "bold"
-                    : "normal",
-                align: "center",
-            }),
-        });
-    }
-
-    // =====================================================
-    // PANEL HELPER
-    // =====================================================
-
-    private createPanel(
-        width: number,
-        height: number,
-        color = COLORS.panel,
-        radius = 14
-    ): Graphics {
-        return new Graphics()
-            .roundRect(
-                0,
-                0,
-                width,
-                height,
-                radius
-            )
-            .fill(color)
-
-            .roundRect(
-                0,
-                0,
-                width,
-                height,
-                radius
-            )
-            .stroke({
-                color: COLORS.border,
-                width: 1.5,
-            });
-    }
-
-    // =====================================================
-    // BASIC BUTTON HELPER
-    //
-    // Dùng tạm cho Navigation.
-    // Các nút PNG sử dụng ImageButton.
-    // =====================================================
-
-    private createButton(
-        text: string,
-        width: number,
-        height: number,
-        onClick: () => void,
-        color = COLORS.panel
-    ): Container {
-        const button = new Container();
-
-        const background = this.createPanel(
-            width,
-            height,
-            color
-        );
-
-        button.addChild(background);
-
-        const title = this.createText(
-            text,
-            17,
-            COLORS.green,
-            true
-        );
-
-        title.anchor.set(0.5);
-
-        title.position.set(
-            width / 2,
-            height / 2
-        );
-
-        button.addChild(title);
-
-        button.eventMode = "static";
-        button.cursor = "pointer";
-
-        button.hitArea = new Rectangle(
-            0,
-            0,
-            width,
-            height
-        );
-
-        button.on("pointertap", onClick);
-
-        return button;
     }
 
     // =====================================================
@@ -277,8 +165,8 @@ export class MainScreen extends Container {
         // ===================================
 
         this.avatarFrame = new AvatarFrame({
-            level: 12,
-            exp: 1840,
+            level: gameStore.player.level,
+            exp: gameStore.player.exp,
             theme: "gold",
             avatarUrl:
                 "/assets/avatar/player.png",
@@ -299,7 +187,7 @@ export class MainScreen extends Container {
 
         this.coinFrame = new CurrencyFrame({
             type: "coin",
-            value: 12450,
+            value: gameStore.player.coin,
 
             onPlus: () => {
                 this.notify("Cửa hàng xu");
@@ -321,7 +209,7 @@ export class MainScreen extends Container {
 
         this.diamondFrame = new CurrencyFrame({
             type: "diamond",
-            value: 386,
+            value: gameStore.player.diamond,
 
             onPlus: () => {
                 this.notify(
@@ -374,12 +262,12 @@ export class MainScreen extends Container {
         this.header.addChild(missionButton);
 
         // ===================================
-        // CATALOG BUTTON
+        // STORAGE BUTTON
         // ===================================
 
-        const catalogButton = new ImageButton({
-            image: "/assets/ui/catalog.png",
-            label: "Bách khoa",
+        const storageButton = new ImageButton({
+            image: "/assets/ui/storage.png",
+            label: "Kho chứa",
 
             imageWidth: 54,
             imageHeight: 54,
@@ -396,18 +284,16 @@ export class MainScreen extends Container {
             labelRadius: 6,
 
             onClick: () => {
-                this.notify(
-                    "Bách khoa hoa toàn thư"
-                );
+                this.storageDialog.open();
             },
         });
 
-        catalogButton.position.set(
+        storageButton.position.set(
             455,
             41
         );
 
-        this.header.addChild(catalogButton);
+        this.header.addChild(storageButton);
     }
 
     // =====================================================
@@ -432,74 +318,17 @@ export class MainScreen extends Container {
     // =====================================================
 
     private createNavigation(): void {
-        this.navigation.position.set(
-            0,
-            this.screenHeight - NAV_HEIGHT
-        );
-
+        this.navigation.position.set(0, this.screenHeight - NAV_HEIGHT);
         this.addChild(this.navigation);
+        this.navigation.addChild(this.navigationBackground);
 
-        this.navigation.addChild(
-            this.navigationBackground
-        );
-
-        const tabs: {
-            key: SceneKey;
-            icon: string;
-            name: string;
-        }[] = [
-            {
-                key: "greenhouse",
-                icon: "✿",
-                name: "Nhà kính",
-            },
-            {
-                key: "tools",
-                icon: "⚒",
-                name: "Nông cụ",
-            },
-            {
-                key: "market",
-                icon: "❀",
-                name: "Bán hoa",
-            },
-            {
-                key: "bouquet",
-                icon: "✾",
-                name: "Gói hoa",
-            },
-        ];
-
-        tabs.forEach((tab, index) => {
-            const tabWidth = 120;
-            const tabHeight = 88;
-
-            const x = 10 + index * 133;
-
-            const button = this.createButton(
-                `${tab.icon}\n${tab.name}`,
-                tabWidth,
-                tabHeight,
-
-                () => {
-                    this.switchScene(tab.key);
-                }
-            );
-
-            button.position.set(x, 12);
-
-            this.navigation.addChild(button);
-
-            this.tabButtons.set(tab.key, {
-                background:
-                    button.children[0] as Graphics,
-
-                text:
-                    button.children[1] as Text,
-            });
+        this.bottomDock = new BottomDock({
+            width: WIDTH,
+            height: NAV_HEIGHT,
+            selected: this.activeKey,
+            onSelect: (key) => this.switchScene(key),
         });
-
-        this.updateNavigation();
+        this.navigation.addChild(this.bottomDock);
     }
 
     // =====================================================
@@ -514,39 +343,32 @@ export class MainScreen extends Container {
 
         this.addChild(this.floating);
 
-        const actions = [
-            {
-                icon: "✉",
-                name: "Hộp thư",
-            },
-            {
-                icon: "⚙",
-                name: "Cài đặt",
-            },
-            {
-                icon: "★",
-                name: "Sự kiện",
-            },
-        ];
-
-        actions.forEach((action, index) => {
-            const button = this.createButton(
-                action.icon,
-                54,
-                54,
-
-                () => {
-                    this.notify(action.name);
-                }
-            );
-
-            button.position.set(
-                0,
-                index * 70
-            );
-
-            this.floating.addChild(button);
+        this.floatingEvents = new FloatingEvents({
+            visibleEventCount: 3,
+            onOpenMail: () => this.notify("Hộp thư"),
+            onOpenEvent: (event) => this.openEvent(event),
         });
+        this.floating.addChild(this.floatingEvents);
+    }
+
+    private openEvent(event: Event): void {
+        if (this.eventScene.parent) this.content.removeChild(this.eventScene);
+        this.activeScene?.onExit();
+        if (this.activeScene) this.activeScene.visible = false;
+        this.content.addChild(this.eventScene);
+        this.eventScene.showEvent(event);
+        this.eventScene.resize(WIDTH, Math.max(0, this.screenHeight - HEADER_HEIGHT - NAV_HEIGHT));
+        this.eventScene.onEnter();
+    }
+
+    private closeEvent(): void {
+        if (!this.eventScene.parent) return;
+        this.eventScene.onExit();
+        this.content.removeChild(this.eventScene);
+        if (this.activeScene) {
+            this.activeScene.visible = true;
+            this.activeScene.onEnter();
+        }
     }
 
     // =====================================================
@@ -554,6 +376,7 @@ export class MainScreen extends Container {
     // =====================================================
 
     public switchScene(key: SceneKey): void {
+        if (this.eventScene.parent) this.closeEvent();
         // Thoát Scene cũ
         if (this.activeScene) {
             this.activeScene.onExit();
@@ -598,20 +421,11 @@ export class MainScreen extends Container {
             );
 
         if (!existing) {
-            const placeholder = this.createText(
-                scene.sceneName,
-                30,
-                COLORS.green,
-                true
-            );
 
-            placeholder.name = placeholderName;
-            placeholder.anchor.set(0.5);
-
-            scene.addChild(placeholder);
         }
 
         this.updateSceneLayout(contentHeight);
+        this.storageDialog.resize(WIDTH, this.screenHeight);
 
         // Vào Scene mới
         scene.onEnter();
@@ -624,18 +438,7 @@ export class MainScreen extends Container {
     // =====================================================
 
     private updateNavigation(): void {
-        for (const [key, elements] of this.tabButtons) {
-            const selected =
-                key === this.activeKey;
-
-            elements.background.tint =
-                selected
-                    ? COLORS.selected
-                    : COLORS.white;
-
-            elements.text.style.fill =
-                COLORS.green;
-        }
+        this.bottomDock.setSelected(this.activeKey);
     }
 
     // =====================================================
@@ -702,6 +505,8 @@ export class MainScreen extends Container {
             )
             .fill(COLORS.nav);
 
+        this.bottomDock.resize(WIDTH, NAV_HEIGHT);
+
         // ===================================
         // FLOATING BUTTONS
         // ===================================
@@ -728,6 +533,7 @@ export class MainScreen extends Container {
     private updateSceneLayout(
         contentHeight: number
     ): void {
+        if (this.eventScene.parent) this.eventScene.resize(WIDTH, contentHeight);
         if (!this.activeScene) return;
 
         this.activeScene.resize(
@@ -762,8 +568,15 @@ export class MainScreen extends Container {
     // PLAYER EXP
     // =====================================================
 
+    private refreshPlayerHud(): void {
+        const player = gameStore.player;
+        this.avatarFrame.setProgress(player.level, player.exp);
+        this.coinFrame.setValue(player.coin);
+        this.diamondFrame.setValue(player.diamond);
+    }
+
     public addPlayerExp(amount: number): void {
-        this.avatarFrame.addExp(amount);
+        gameStore.addExp(amount);
     }
 
     // =====================================================
@@ -771,11 +584,11 @@ export class MainScreen extends Container {
     // =====================================================
 
     public addCoins(amount: number): void {
-        this.coinFrame.addValue(amount);
+        gameStore.addCoin(amount);
     }
 
     public getCoins(): number {
-        return this.coinFrame.getValue();
+        return gameStore.player.coin;
     }
 
     // =====================================================
@@ -783,10 +596,16 @@ export class MainScreen extends Container {
     // =====================================================
 
     public addDiamonds(amount: number): void {
-        this.diamondFrame.addValue(amount);
+        gameStore.addDiamond(amount);
     }
 
     public getDiamonds(): number {
-        return this.diamondFrame.getValue();
+        return gameStore.player.diamond;
+    }
+
+    public override destroy(options?: boolean | { children?: boolean }): void {
+        this.unsubscribePlayer?.();
+        this.unsubscribePlayer = undefined;
+        super.destroy(options);
     }
 }

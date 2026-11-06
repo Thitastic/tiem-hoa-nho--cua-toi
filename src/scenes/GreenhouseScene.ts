@@ -1,32 +1,23 @@
-
 import {
     Container,
     Graphics,
-    Text,
-    TextStyle,
-    Rectangle,
+    Assets,
+    Sprite,
+    Texture,
 } from "pixi.js";
 
 import { BaseScene } from "./BaseScene";
-import { WoodTabBar } from "../components/WoodTabBar";
+import { GameTabBar } from "../components/GameTabBar.ts";
+import { gameStore } from "../services/GameSession";
+import { PotGridView } from "../components/PotGridView";
 
 // =====================================================
 // TYPES
 // =====================================================
 
-type ToolType = "water" | "fertilizer" | "shovel";
-
-interface PlantPlot {
-    id: number;
-    hasPot: boolean;
-    planted: boolean;
-}
-
 // =====================================================
 // CONFIG
 // =====================================================
-
-const WIDTH = 540;
 
 const CONFIG = {
     greenhouseCount: 5,
@@ -43,33 +34,11 @@ const CONFIG = {
     tabsHeight: 84,
     toolsHeight: 116,
 
-    // Kích thước dụng cụ
-    toolSlotSize: 78,
 };
 
 const COLORS = {
     background: 0xe9f0df,
 
-    green: 0x477f58,
-    greenDark: 0x315f45,
-
-    tabInactive: 0xcfddc1,
-    tabActive: 0x477f58,
-
-    soil: 0xc9a67a,
-    soilDark: 0x9a734b,
-
-    plot: 0xf1e4c8,
-    border: 0xad9777,
-
-    pot: 0xb8794d,
-    potDark: 0x895335,
-
-    white: 0xffffff,
-    text: 0x4e493e,
-
-    toolSlot: 0xfff5df,
-    selected: 0xb7dbb4,
 };
 
 // =====================================================
@@ -82,91 +51,26 @@ export class GreenhouseScene extends BaseScene {
     // Nhà kính đang được chọn: 0–4
     private activeGreenhouse = 0;
 
-    // Dụng cụ đang chọn
-    private selectedTool: ToolType | null = null;
-
-    // Dữ liệu 5 nhà kính
-    private greenhouses: PlantPlot[][] = [];
-
     // Các Container chính
-    private tabsContainer = new Container();
+    private tabsContainer?: GameTabBar;
+    private tabGreenhouseIds: number[] = [];
     private gridContainer = new Container();
-    private toolsContainer = new Container();
 
     private background = new Graphics();
+
+    private backgroundSprite?: Sprite;
+    private backgroundMask = new Graphics();
 
     constructor() {
         super();
 
-        this.initializeGreenhouses();
-
         this.addChild(this.background);
+        this.addChild(this.backgroundMask);
 
-        this.addChild(this.tabsContainer);
         this.addChild(this.gridContainer);
-        this.addChild(this.toolsContainer);
 
         this.renderLayout();
-    }
-
-    // =====================================================
-    // INITIAL DATA
-    // =====================================================
-
-    private initializeGreenhouses(): void {
-        const plotCount =
-            CONFIG.gridColumns * CONFIG.gridRows;
-
-        for (
-            let greenhouse = 0;
-            greenhouse < CONFIG.greenhouseCount;
-            greenhouse++
-        ) {
-            const plots: PlantPlot[] = [];
-
-            for (let i = 0; i < plotCount; i++) {
-                plots.push({
-                    id: i,
-                    hasPot: false,
-                    planted: false,
-                });
-            }
-
-            this.greenhouses.push(plots);
-        }
-
-        // Dữ liệu mẫu cho nhà kính đầu tiên
-        const demoPlots = [0, 3, 5, 8, 13];
-
-        for (const id of demoPlots) {
-            this.greenhouses[0][id].hasPot = true;
-            this.greenhouses[0][id].planted = true;
-        }
-    }
-
-    // =====================================================
-    // TEXT HELPER
-    // =====================================================
-
-    private createText(
-        value: string,
-        fontSize = 16,
-        color = COLORS.text,
-        bold = false
-    ): Text {
-        return new Text({
-            text: value,
-
-            style: new TextStyle({
-                fontFamily: "Arial, sans-serif",
-                fontSize,
-                fontWeight: bold
-                    ? "bold"
-                    : "normal",
-                fill: color,
-                align: "center",
-            }),
-        });
+        void this.loadBackground();
     }
 
     // =====================================================
@@ -186,6 +90,7 @@ export class GreenhouseScene extends BaseScene {
     // =====================================================
 
     private renderLayout(): void {
+        // Màu nền dự phòng nếu chưa tải được ảnh
         this.background.clear();
 
         this.background
@@ -197,130 +102,69 @@ export class GreenhouseScene extends BaseScene {
             )
             .fill(COLORS.background);
 
-        this.renderTabs();
+        // Cập nhật ảnh nền
+        this.updateBackground();
+
+        // Chỉ tạo tab khi đã mở khóa từ 2 nhà kính trở lên.
+        this.updateGreenhouseTabs();
+
         this.renderGrid();
-        this.renderTools();
     }
 
     // =====================================================
     // ROW 1 - GREENHOUSE TABS
     // =====================================================
 
-    private renderTabs(): void {
-        this.clearContainer(this.tabsContainer);
+    private updateGreenhouseTabs(): void {
+        const unlocked = gameStore.greenhouses.filter((greenhouse) => greenhouse.unlock);
+        const ids = unlocked.map((greenhouse) => greenhouse.id);
 
-        const padding = CONFIG.padding;
-        const gap = 7;
+        if (!unlocked.some((greenhouse) => gameStore.greenhouses[this.activeGreenhouse]?.id === greenhouse.id)) {
+            this.activeGreenhouse = gameStore.greenhouses.findIndex((greenhouse) => greenhouse.unlock);
+        }
 
-        const availableWidth =
-            this.sceneWidth - padding * 2;
+        if (ids.length < 2) {
+            this.tabsContainer?.destroy({ children: true });
+            this.tabsContainer = undefined;
+            this.tabGreenhouseIds = [];
+            return;
+        }
 
-        const tabWidth =
-            (
-                availableWidth -
-                gap * (CONFIG.greenhouseCount - 1)
-            ) / CONFIG.greenhouseCount;
-
-        const tabHeight = 60;
-
-        for (
-            let i = 0;
-            i < CONFIG.greenhouseCount;
-            i++
-        ) {
-            const selected =
-                i === this.activeGreenhouse;
-
-            const tab = new Container();
-
-            const background = new Graphics()
-                .roundRect(
-                    0,
-                    0,
-                    tabWidth,
-                    tabHeight,
-                    12
-                )
-                .fill(
-                    selected
-                        ? COLORS.tabActive
-                        : COLORS.tabInactive
-                );
-
-            tab.addChild(background);
-
-            // Biểu tượng nhà kính tạm thời
-            const icon = this.createText(
-                "⌂",
-                29,
-                selected
-                    ? COLORS.white
-                    : COLORS.greenDark,
-                true
-            );
-
-            icon.anchor.set(0.5);
-            icon.position.set(
-                tabWidth / 2,
-                20
-            );
-
-            tab.addChild(icon);
-
-            const title = this.createText(
-                `NK ${i + 1}`,
-                14,
-                selected
-                    ? COLORS.white
-                    : COLORS.greenDark,
-                true
-            );
-
-            title.anchor.set(0.5);
-            title.position.set(
-                tabWidth / 2,
-                46
-            );
-
-            tab.addChild(title);
-
-            tab.position.set(
-                padding + i * (tabWidth + gap),
-                12
-            );
-
-            tab.eventMode = "static";
-            tab.cursor = "pointer";
-
-            tab.hitArea = new Rectangle(
-                0, 0,
-                tabWidth,
-                tabHeight
-            );
-
-            tab.on("pointertap", () => {
-                this.selectGreenhouse(i);
+        if (ids.join(",") !== this.tabGreenhouseIds.join(",") || !this.tabsContainer) {
+            this.tabsContainer?.destroy({ children: true });
+            this.tabGreenhouseIds = ids;
+            this.tabsContainer = new GameTabBar({
+                width: this.sceneWidth - 36,
+                selectedIndex: Math.max(0, ids.indexOf(gameStore.greenhouses[this.activeGreenhouse].id)),
+                tabs: unlocked.map((greenhouse) => ({
+                    id: `greenhouse-${greenhouse.id}`,
+                    label: `NK ${greenhouse.id}`,
+                })),
+                onChange: (tabIndex) => this.selectGreenhouse(tabIndex),
             });
-
-            this.tabsContainer.addChild(tab);
+            this.tabsContainer.position.set(18, 0);
+            this.addChild(this.tabsContainer);
+        } else {
+            this.tabsContainer.resize(this.sceneWidth - 36);
         }
     }
+
 
     // =====================================================
     // SELECT GREENHOUSE
     // =====================================================
 
-    private selectGreenhouse(index: number): void {
-        if (
-            index < 0 ||
-            index >= CONFIG.greenhouseCount
-        ) {
-            return;
-        }
+    private selectGreenhouse(tabIndex: number): void {
+        const greenhouseId = this.tabGreenhouseIds[tabIndex];
+        const greenhouseIndex = gameStore.greenhouses.findIndex(
+            (greenhouse) => greenhouse.id === greenhouseId && greenhouse.unlock
+        );
+        if (greenhouseIndex < 0) return;
 
-        this.activeGreenhouse = index;
+        this.activeGreenhouse = greenhouseIndex;
+        this.tabsContainer?.setSelected(tabIndex);
 
-        this.renderTabs();
+        // Chỉ cần render lại Grid
         this.renderGrid();
     }
 
@@ -333,7 +177,11 @@ export class GreenhouseScene extends BaseScene {
 
         const padding = CONFIG.padding;
 
-        const gridY = CONFIG.tabsHeight + 10;
+        // Giữ nguyên khoảng dành cho tab ngay cả khi tab bị ẩn.
+        // Nhờ vậy Grid không bị nhảy lên khi chỉ có 1 nhà kính.
+        const gridY = this.tabsContainer
+            ? this.tabsContainer.y + this.tabsContainer.getHeight() + 10
+            : CONFIG.tabsHeight + 10;
 
         const toolsTop =
             this.sceneHeight - CONFIG.toolsHeight;
@@ -355,48 +203,14 @@ export class GreenhouseScene extends BaseScene {
                 availableHeight,
                 18
             )
-            .fill(0xd6e0c7);
+            .fill({
+                color: 0xf7e9c8,
+                alpha: 0.15,
+            });
 
         this.gridContainer.addChild(panel);
 
-        // Tiêu đề nhà kính
-        const title = this.createText(
-            `Nhà kính số ${this.activeGreenhouse + 1}`,
-            21,
-            COLORS.greenDark,
-            true
-        );
-
-        title.position.set(
-            padding + 18,
-            gridY + 15
-        );
-
-        this.gridContainer.addChild(title);
-
-        // Đếm số chậu đã đặt
-        const plots =
-            this.greenhouses[this.activeGreenhouse];
-
-        const potCount = plots.filter(
-            plot => plot.hasPot
-        ).length;
-
-        const counter = this.createText(
-            `${potCount}/${plots.length} chậu`,
-            14,
-            COLORS.greenDark,
-            true
-        );
-
-        counter.anchor.set(1, 0);
-
-        counter.position.set(
-            this.sceneWidth - padding - 18,
-            gridY + 19
-        );
-
-        this.gridContainer.addChild(counter);
+        const plots = gameStore.greenhouses[this.activeGreenhouse].plots;
 
         // ===================================
         // GRID
@@ -411,10 +225,10 @@ export class GreenhouseScene extends BaseScene {
         const gridWidth =
             availableWidth - innerPadding * 2;
 
-        // Chừa chiều cao cho tiêu đề
+        // Không cần chừa chỗ cho tiêu đề và bộ đếm nữa.
         const gridHeight = Math.max(
             0,
-            availableHeight - 82
+            availableHeight - 36
         );
 
         // Ô vuông, kích thước thích ứng
@@ -442,13 +256,7 @@ export class GreenhouseScene extends BaseScene {
         const startX =
             (this.sceneWidth - actualWidth) / 2;
 
-        const startY =
-            gridY +
-            58 +
-            Math.max(
-                0,
-                (gridHeight - actualHeight) / 2
-            );
+        const startY = gridY + 18 + Math.max(0, (gridHeight - actualHeight) / 2) + 80;
 
         plots.forEach((plot, index) => {
             const column = index % columns;
@@ -460,10 +268,11 @@ export class GreenhouseScene extends BaseScene {
             const y =
                 startY + row * (cellSize + gap);
 
-            const cell = this.createPlot(
+            const cell = new PotGridView({
                 plot,
-                cellSize
-            );
+                size: cellSize,
+                onClick: (plotId) => this.onPlotClick(plotId),
+            });
 
             cell.position.set(x, y);
 
@@ -472,337 +281,24 @@ export class GreenhouseScene extends BaseScene {
     }
 
     // =====================================================
-    // SINGLE PLOT
-    // =====================================================
-
-    private createPlot(
-        plot: PlantPlot,
-        size: number
-    ): Container {
-        const cell = new Container();
-
-        // Ô đất
-        const background = new Graphics()
-            .roundRect(
-                0,
-                0,
-                size,
-                size,
-                12
-            )
-            .fill(COLORS.plot)
-
-            .roundRect(
-                0,
-                0,
-                size,
-                size,
-                12
-            )
-            .stroke({
-                color: COLORS.border,
-                width: 2,
-            });
-
-        cell.addChild(background);
-
-        // Đất bên trong
-        const soil = new Graphics()
-            .ellipse(
-                size / 2,
-                size * 0.68,
-                size * 0.33,
-                size * 0.14
-            )
-            .fill(COLORS.soil);
-
-        cell.addChild(soil);
-
-        if (plot.hasPot) {
-            this.drawPot(cell, size, plot.planted);
-        } else {
-            // Dấu cộng khi chưa đặt chậu
-            const plus = this.createText(
-                "+",
-                Math.max(18, size * 0.35),
-                COLORS.border,
-                true
-            );
-
-            plus.anchor.set(0.5);
-
-            plus.position.set(
-                size / 2,
-                size / 2
-            );
-
-            cell.addChild(plus);
-        }
-
-        cell.eventMode = "static";
-        cell.cursor = "pointer";
-
-        cell.hitArea = new Rectangle(
-            0,
-            0,
-            size,
-            size
-        );
-
-        cell.on("pointertap", () => {
-            this.onPlotClick(plot.id);
-        });
-
-        return cell;
-    }
-
-    // =====================================================
-    // DRAW POT
-    // =====================================================
-
-    private drawPot(
-        parent: Container,
-        size: number,
-        planted: boolean
-    ): void {
-        const center = size / 2;
-
-        const pot = new Graphics()
-            .moveTo(
-                center - size * 0.24,
-                center
-            )
-            .lineTo(
-                center + size * 0.24,
-                center
-            )
-            .lineTo(
-                center + size * 0.17,
-                center + size * 0.29
-            )
-            .lineTo(
-                center - size * 0.17,
-                center + size * 0.29
-            )
-            .closePath()
-            .fill(COLORS.pot)
-
-            .roundRect(
-                center - size * 0.27,
-                center - size * 0.04,
-                size * 0.54,
-                size * 0.09,
-                4
-            )
-            .fill(COLORS.potDark);
-
-        parent.addChild(pot);
-
-        if (planted) {
-            const plant = new Graphics()
-                .moveTo(
-                    center,
-                    center
-                )
-                .lineTo(
-                    center,
-                    center - size * 0.3
-                )
-                .stroke({
-                    color: 0x428e50,
-                    width: Math.max(2, size * 0.04),
-                })
-
-                .ellipse(
-                    center - size * 0.1,
-                    center - size * 0.18,
-                    size * 0.13,
-                    size * 0.06
-                )
-                .fill(0x63ad66)
-
-                .ellipse(
-                    center + size * 0.1,
-                    center - size * 0.24,
-                    size * 0.13,
-                    size * 0.06
-                )
-                .fill(0x63ad66);
-
-            parent.addChild(plant);
-        }
-    }
-
-    // =====================================================
     // CLICK PLOT
     // =====================================================
 
     private onPlotClick(plotId: number): void {
-        const plots =
-            this.greenhouses[this.activeGreenhouse];
-
-        const plot = plots[plotId];
+        const greenhouse = gameStore.greenhouses[this.activeGreenhouse];
+        const plot = greenhouse.plots.find((item) => item.id === plotId);
 
         if (!plot) return;
-
-        // Phác thảo:
-        // Nếu chưa có chậu, thêm chậu.
-        // Nếu đã có chậu, chọn ô đất.
-
-        if (!plot.hasPot) {
-            plot.hasPot = true;
-            plot.planted = false;
-        } else if (!plot.planted) {
-            plot.planted = true;
-        } else {
-            console.log(
-                `Đã chọn chậu ${plotId + 1} ` +
-                `trong nhà kính ${this.activeGreenhouse + 1}`
-            );
+        if (!greenhouse.unlock || !plot.unlock) {
+            console.info("Ô đất chưa mở khóa");
+            return;
         }
-
-        this.renderGrid();
+        // Không tự cấp chậu/cây khi chạm; mua/đặt chậu qua GameStore.
+        console.info(`Ô ${plot.id}: potId=${plot.potId ?? "trống"}, trạng thái=${plot.status}`);
     }
 
     // =====================================================
-    // ROW 3 - TOOL SLOTS
-    // =====================================================
-
-    private renderTools(): void {
-        this.clearContainer(this.toolsContainer);
-
-        const tools: {
-            id: ToolType;
-            icon: string;
-            name: string;
-        }[] = [
-            {
-                id: "water",
-                icon: "◈",
-                name: "Bình tưới",
-            },
-            {
-                id: "fertilizer",
-                icon: "✿",
-                name: "Phân bón",
-            },
-            {
-                id: "shovel",
-                icon: "⚒",
-                name: "Xẻng",
-            },
-        ];
-
-        const slotSize = CONFIG.toolSlotSize;
-        const gap = 24;
-
-        const totalWidth =
-            slotSize * 3 + gap * 2;
-
-        const startX =
-            (this.sceneWidth - totalWidth) / 2;
-
-        const y =
-            this.sceneHeight -
-            CONFIG.toolsHeight +
-            12;
-
-        tools.forEach((tool, index) => {
-            const selected =
-                this.selectedTool === tool.id;
-
-            const slot = new Container();
-
-            const background = new Graphics()
-                .roundRect(
-                    0,
-                    0,
-                    slotSize,
-                    slotSize,
-                    14
-                )
-                .fill(
-                    selected
-                        ? COLORS.selected
-                        : COLORS.toolSlot
-                )
-
-                .roundRect(
-                    0,
-                    0,
-                    slotSize,
-                    slotSize,
-                    14
-                )
-                .stroke({
-                    color: selected
-                        ? COLORS.green
-                        : COLORS.border,
-                    width: selected ? 3 : 2,
-                });
-
-            slot.addChild(background);
-
-            const icon = this.createText(
-                tool.icon,
-                31,
-                COLORS.greenDark,
-                true
-            );
-
-            icon.anchor.set(0.5);
-            icon.position.set(
-                slotSize / 2,
-                29
-            );
-
-            slot.addChild(icon);
-
-            const name = this.createText(
-                tool.name,
-                13,
-                COLORS.greenDark,
-                true
-            );
-
-            name.anchor.set(0.5);
-            name.position.set(
-                slotSize / 2,
-                61
-            );
-
-            slot.addChild(name);
-
-            slot.position.set(
-                startX + index * (slotSize + gap),
-                y
-            );
-
-            slot.eventMode = "static";
-            slot.cursor = "pointer";
-
-            slot.hitArea = new Rectangle(
-                0,
-                0,
-                slotSize,
-                slotSize
-            );
-
-            slot.on("pointertap", () => {
-                this.selectedTool =
-                    this.selectedTool === tool.id
-                        ? null
-                        : tool.id;
-
-                this.renderTools();
-            });
-
-            this.toolsContainer.addChild(slot);
-        });
-    }
-
-    // =====================================================
-    // LIFECYCLE
+    // LIFECYCLE (đã bỏ thanh dụng cụ, vẫn giữ khoảng trống để Grid không dịch chuyển)
     // =====================================================
 
     override onEnter(): void {
@@ -824,5 +320,71 @@ export class GreenhouseScene extends BaseScene {
         super.resize(width, height);
 
         this.renderLayout();
+    }
+
+    private async loadBackground(): Promise<void> {
+        try {
+            const texture = await Assets.load<Texture>(
+                "/assets/bg/green-house.png"
+            );
+
+            if (this.destroyed) return;
+
+            this.backgroundSprite = new Sprite(texture);
+
+            // Nằm trên màu nền dự phòng nhưng dưới tab, grid và dụng cụ.
+            this.addChildAt(this.backgroundSprite, 1);
+
+            // Mask giúp ảnh không tràn khỏi Scene
+            this.backgroundSprite.mask = this.backgroundMask;
+
+            this.updateBackground();
+        } catch (error) {
+            console.error(
+                "Không tải được ảnh nền nhà kính:",
+                error
+            );
+        }
+    }
+
+    private updateBackground(): void {
+        if (!this.backgroundSprite) return;
+
+        const sprite = this.backgroundSprite;
+
+        const textureWidth = sprite.texture.width;
+        const textureHeight = sprite.texture.height;
+
+        const targetWidth = this.sceneWidth;
+        const targetHeight = this.sceneHeight;
+
+        // Object-fit: cover
+        // Giữ nguyên tỷ lệ, không kéo méo ảnh
+        const scale = Math.max(
+            targetWidth / textureWidth,
+            targetHeight / textureHeight
+        );
+
+        sprite.scale.set(scale);
+
+        // Căn giữa ảnh nền
+        sprite.anchor.set(0.5);
+
+        sprite.position.set(
+            targetWidth / 2,
+            targetHeight / 2
+        );
+
+        // Giới hạn ảnh trong khu vực Scene
+        this.backgroundMask.clear();
+
+        this.backgroundMask
+            .rect(
+                0,
+                0,
+                targetWidth,
+                targetHeight
+            )
+            .fill(0xffffff);
     }
 }

@@ -378,6 +378,14 @@ export class AvatarFrame extends Container {
         this.updateDisplay();
     }
 
+    /** Đồng bộ trực tiếp level/EXP từ Player, không cộng EXP thêm lần nữa. */
+    public setProgress(level: number, exp: number): void {
+        this.level = Math.max(1, Math.floor(level));
+        this.exp = Math.max(0, Math.floor(exp));
+        this.normalizeExp();
+        this.updateDisplay();
+    }
+
     public setTheme(theme: AvatarTheme): void {
         this.theme = theme;
         this.renderFrame();

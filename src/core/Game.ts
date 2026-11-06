@@ -1,6 +1,7 @@
 
 import { Application } from "pixi.js";
 import { MainScreen } from "../ui/MainScene";
+import { loadGameFont } from "../services/GameFont";
 
 export class Game {
     private readonly app = new Application();
@@ -13,19 +14,19 @@ export class Game {
     private resizeHandler = () => this.resize();
 
     async start(): Promise<void> {
-        await this.app.init({
-            width: this.designWidth,
-            height: 960,
+        await Promise.all([
+            loadGameFont(),
+            this.app.init({
+                width: this.designWidth,
+                height: 960,
 
-            background: "#fff8ed",
-            antialias: true,
-            autoDensity: true,
+                background: "#fff8ed",
+                antialias: true,
+                autoDensity: true,
 
-            resolution: Math.min(
-                window.devicePixelRatio || 1,
-                2
-            ),
-        });
+                resolution: Math.min(window.devicePixelRatio || 1, 2),
+            }),
+        ]);
 
         document.body.appendChild(this.app.canvas);
 
